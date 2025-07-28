@@ -1,0 +1,33 @@
+# Large simulation files
+*.h5
+*.npz
+*_sdf_matrix.npy
+
+# Generated simulation results
+results*/
+sdf_data/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*_production_optimized.json 
