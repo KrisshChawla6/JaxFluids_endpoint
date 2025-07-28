@@ -1,0 +1,594 @@
+*------------------------------------------------------------------------------*
+*                                                                              *
+*                                                                              *
+*          _     _    __  __        _____  _      _   _  ___  ____   ____      *
+*         | |   / \   \ \/ /       |  ___|| |    | | | ||_ _||  _ \ / ___|     *
+*      _  | |  / _ \   \  /  _____ | |_   | |    | | | | | | | | | |\___ \     *
+*     | |_| | / ___ \  /  \ |_____||  _|  | |___ | |_| | | | | |_| | ___) |    *
+*      \___/ /_/   \_\/_/\_\       |_|    |_____| \___/ |___||____/ |____/     *
+*                                                                              *
+*                                By BB - ML@AER                                *
+*                                                                              *
+*------------------------------------------------------------------------------*
+* JAX-FLUIDS -                                                                 *
+*                                                                              *
+* A fully-differentiable CFD solver for compressible two-phase flows.          *
+*                                                                              *
+* MIT License                                                                  *
+* Copyright (C) 2022  Deniz A. Bezgin, Aaron B. Buhendwa, Nikolaus A. Adams    *
+*                                                                              *
+* Permission is hereby granted, free of charge, to any person obtaining a copy *
+* of this software and associated documentation files (the 'Software'),        *
+* to deal in the Software without restriction, including without limitation    *
+* the rights to use, copy, modify, merge, publish, distribute, sublicense,     *
+* and/or sell copies of the Software, and to permit persons to whom            *
+* the Software is furnished to do so, subject to the following conditions:     *
+*                                                                              *
+* The above copyright notice and this permission notice shall be included in   *
+* all copies or substantial portions of the Software.                          *
+*                                                                              *
+* THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR   *
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,     *
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE  *
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER       *
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,              *
+* ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE           *
+* OR OTHER DEALINGS IN THE SOFTWARE.                                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+* CONTACT                                                                      *
+*                                                                              *
+* deniz.bezgin@tum.de // aaron.buhendwa@tum.de // nikolaus.adams@tum.de        *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+* Munich, April 15th, 2022                                                     *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*                                                                              *
+*                               NUMERICAL SETUP                                *
+*                                                                              *
+*    CONSERVATIVES                                                             *
+*      HALO CELLS          :    5                                              *
+*      TIME INTEGRATION                                                        *
+*        INTEGRATOR  :    RK3                                                  *
+*        CFL         :    0.5                                                  *
+*      CONVECTIVE FLUXES                                                       *
+*        CONVECTIVE SOLVER   :    GODUNOV                                      *
+*        GODUNOV                                                               *
+*          RIEMANN_SOLVER          :    HLLC                                   *
+*          SIGNAL_SPEED            :    EINFELDT                               *
+*          RECONSTRUCTION_STENCIL  :    WENO5-Z                                *
+*          RECONSTRUCTION_VARIABLE :    CHAR-PRIMITIVE                         *
+*        AUSM                                                                  *
+*          FLUX_SPLITTING  :    AUSMPLUSUP                                     *
+*          SIGNAL_SPEED    :    EINFELDT                                       *
+*      DISSIPATIVE FLUXES                                                      *
+*        RECONSTRUCTION STENCIL      :    CENTRAL4                             *
+*        DERIVATIVE STENCIL CENTER   :    CENTRAL4                             *
+*        DERIVATIVE STENCIL FACE     :    CENTRAL4                             *
+*                                                                              *
+*    ACTIVE PHYSICS                                                            *
+*      IS CONVECTIVE FLUX  :    True                                           *
+*      IS VISCOUS FLUX     :    True                                           *
+*      IS HEAT FLUX        :    True                                           *
+*      IS VOLUME FORCE     :    False                                          *
+*      IS SURFACE TENSION  :    False                                          *
+*      IS LEVELSET         :    True                                           *
+*                                                                              *
+*    LEVELSET                                                                  *
+*      NARROWBAND COMPUTATION                                                  *
+*        IS NARROWBAND   :    True                                             *
+*        NARROWBAND SIZE :    10                                               *
+*      REINITIALIZATION                                                        *
+*        IS REINITIALIZATION         :    True                                 *
+*        REINITIALIZATION INTERVAL   :    2                                    *
+*        REINITIALIZATION STEPS      :    10                                   *
+*      INTERFACE INTERACTION                                                   *
+*        LEVELSET MODEL              :    FLUID-SOLID-STATIC                   *
+*        SURFACE TENSION COEFFICIENT :    0.0                                  *
+*                                                                              *
+*    PRECISION                                                                 *
+*      IS DOUBLE PRECISION COMPUTE :    True                                   *
+*      IS DOUBLE PRECISION OUTPUT  :    True                                   *
+*                                                                              *
+*    OUTPUT                                                                    *
+*      IS XDMF             :    True                                           *
+*      DERIVATIVE STENCIL  :    CENTRAL4                                       *
+*                                                                              *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*                                  CASE SETUP                                  *
+*                                                                              *
+*    GENERAL                                                                   *
+*      CASE NAME   :    rocket_nozzle_internal_supersonic_production           *
+*      END TIME    :    0.05                                                   *
+*      SAVE PATH   :    ./output/                                              *
+*      SAVE DT     :    0.005                                                  *
+*                                                                              *
+*    RESTART                                                                   *
+*      FLAG        :    False                                                  *
+*      FILE PATH   :                                                           *
+*                                                                              *
+*    DOMAIN                                                                    *
+*      X                                                                       *
+*        CELLS   :    128                                                      *
+*        RANGE   :    [-200.0, 1800.0]                                         *
+*      Y                                                                       *
+*        CELLS   :    64                                                       *
+*        RANGE   :    [-800.0, 800.0]                                          *
+*      Z                                                                       *
+*        CELLS   :    64                                                       *
+*        RANGE   :    [-800.0, 800.0]                                          *
+*      DECOMPOSITION                                                           *
+*        SPLIT X :    1                                                        *
+*        SPLIT Y :    1                                                        *
+*        SPLIT Z :    1                                                        *
+*                                                                              *
+*    BOUNDARY CONDITIONS                                                       *
+*      EAST                                                                    *
+*        TYPE    :    SYMMETRY                                                 *
+*      WEST                                                                    *
+*        TYPE    :    SYMMETRY                                                 *
+*      NORTH                                                                   *
+*        TYPE    :    SYMMETRY                                                 *
+*      SOUTH                                                                   *
+*        TYPE    :    SYMMETRY                                                 *
+*      TOP                                                                     *
+*        TYPE    :    SYMMETRY                                                 *
+*      BOTTOM                                                                  *
+*        TYPE    :    SYMMETRY                                                 *
+*                                                                              *
+*    INITIAL CONDITION                                                         *
+*      PRIMITIVES                                                              *
+*        RHO :    1.0                                                          *
+*        U   :    10.0                                                         *
+*        V   :    0.0                                                          *
+*        W   :    0.0                                                          *
+*        P   :    1000000.0                                                    *
+*      LEVELSET    :                                                           *
+*          ../../hardcoded_run/attempt1/rocket_case/20250728_003202/Rocket     *
+*            Engine_sdf_matrix.npy                                             *
+*                                                                              *
+*                                                                              *
+*    FORCINGS                                                                  *
+*      MASS FLOW                                                               *
+*        DIRECTION       :    x                                                *
+*        TARGET VALUE    :    15.0                                             *
+*      TEMPERATURE                                                             *
+*        TARGET VALUE    :    1500.0                                           *
+*                                                                              *
+*    MATERIAL PROPERTIES                                                       *
+*      EQUATION OF STATE                                                       *
+*        MODEL                   :    IdealGas                                 *
+*        SPECIFIC HEAT RATIO     :    1.4                                      *
+*        SPECIFIC GAS CONSTANT   :    287.0                                    *
+*      TRANSPORT                                                               *
+*        DYNAMIC VISCOSITY                                                     *
+*          MODEL   :    CUSTOM                                                 *
+*          VALUE   :    1.8e-05                                                *
+*        BULK VISCOSITY          :    0.0                                      *
+*        THERMAL CONDUCTIVITY                                                  *
+*          MODEL           :    PRANDTL                                        *
+*          PRANDTL NUMBER  :    0.72                                           *
+*                                                                              *
+*    NONDIMENSIONALIZATION PARAMETERS                                          *
+*      DENSITY REFERENCE       :    1.0                                        *
+*      LENGTH REFERENCE        :    1.0                                        *
+*      VELOCITY REFERENCE      :    50.0                                       *
+*      TEMPERATURE REFERENCE   :    288.15                                     *
+*                                                                              *
+*    OUTPUT                                                                    *
+*      PRIMITIVES      :    ['density', 'velocity', 'pressure', 'temperature'] *
+*      MISCELLANEOUS   :    ['mach_number']                                    *
+*      QUANTITIES                                                              *
+*        LEVELSET    :    ['levelset']                                         *
+*                                                                              *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*                               MESH INFORMATION                               *
+*                                                                              *
+*    TOTRAL RESOLUTION       :    128 x 64 x 64                                *
+*    TOTAL NUMBER OF CELLS   :    0.524 M                                      *
+*    DEVICE RESOLUTION       :    128 x 64 x 64                                *
+*    DEVICE NUMBER OF CELLS  :    0.524 M                                      *
+*    DX_MIN, DY_MIN, DZ_MIN  :    [15.625, 25.0, 25.0]                         *
+*    MAX EDGE LENGTH RATIOS  :    [1.0, 1.0, 1.0]                              *
+*    MAX ASPECT RATIO        :    1.600                                        *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*                                                                              *
+*          _     _    __  __        _____  _      _   _  ___  ____   ____      *
+*         | |   / \   \ \/ /       |  ___|| |    | | | ||_ _||  _ \ / ___|     *
+*      _  | |  / _ \   \  /  _____ | |_   | |    | | | | | | | | | |\___ \     *
+*     | |_| | / ___ \  /  \ |_____||  _|  | |___ | |_| | | | | |_| | ___) |    *
+*      \___/ /_/   \_\/_/\_\       |_|    |_____| \___/ |___||____/ |____/     *
+*                                                                              *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*                            PYTHON Version: 3.13.3                            *
+*                              JAX Version: 0.6.2                              *
+*                            JAXLIB Version: 0.6.2                             *
+*                          JAX-Fluids Version: 0.2.0                           *
+*                               GIT Commit: None                               *
+*                       DATE & TIME: 2025-07-28 02:55:50                       *
+*                              PROCESS ID: 32596                               *
+*                               JAX BACKEND: cpu                               *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*    TIME CONTROL                                                              *
+*    CURRENT TIME                       = 0.00000e+00                          *
+*    CURRENT DT                         = 2.19474e-03                          *
+*    CURRENT STEP                       =      0                               *
+*                                                                              *
+*                                                                              *
+*    POSITIVITY STATE                                                          *
+*    MIN DENSITY                        = 1.0000e+00                           *
+*    MIN PRESSURE                       = 4.0000e+02                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*    TIME CONTROL                                                              *
+*    CURRENT TIME                       = 2.19474e-03                          *
+*    CURRENT DT                         = 2.19474e-03                          *
+*    CURRENT STEP                       =      1                               *
+*    WALL CLOCK TIMESTEP                = 8.09940e+00                          *
+*    WALL CLOCK TIMESTEP CELL           = 1.54484e-05                          *
+*    MEAN WALL CLOCK TIMESTEP CELL      = 1.54484e-05                          *
+*                                                                              *
+*                                                                              *
+*    POSITIVITY STATE                                                          *
+*    MIN DENSITY                        = 9.9862e-01                           *
+*    MIN PRESSURE                       = 3.9923e+02                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*    TIME CONTROL                                                              *
+*    CURRENT TIME                       = 4.38948e-03                          *
+*    CURRENT DT                         = 2.19474e-03                          *
+*    CURRENT STEP                       =      2                               *
+*    WALL CLOCK TIMESTEP                = 5.77727e+00                          *
+*    WALL CLOCK TIMESTEP CELL           = 1.10193e-05                          *
+*    MEAN WALL CLOCK TIMESTEP CELL      = 1.10193e-05                          *
+*                                                                              *
+*                                                                              *
+*    POSITIVITY STATE                                                          *
+*    MIN DENSITY                        = 9.9729e-01                           *
+*    MIN PRESSURE                       = 3.9849e+02                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*    TIME CONTROL                                                              *
+*    CURRENT TIME                       = 6.58422e-03                          *
+*    CURRENT DT                         = 2.19474e-03                          *
+*    CURRENT STEP                       =      3                               *
+*    WALL CLOCK TIMESTEP                = 1.03553e+00                          *
+*    WALL CLOCK TIMESTEP CELL           = 1.97511e-06                          *
+*    MEAN WALL CLOCK TIMESTEP CELL      = 1.97511e-06                          *
+*                                                                              *
+*                                                                              *
+*    POSITIVITY STATE                                                          *
+*    MIN DENSITY                        = 9.9610e-01                           *
+*    MIN PRESSURE                       = 3.9782e+02                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*    TIME CONTROL                                                              *
+*    CURRENT TIME                       = 8.77896e-03                          *
+*    CURRENT DT                         = 2.19474e-03                          *
+*    CURRENT STEP                       =      4                               *
+*    WALL CLOCK TIMESTEP                = 1.04164e+00                          *
+*    WALL CLOCK TIMESTEP CELL           = 1.98677e-06                          *
+*    MEAN WALL CLOCK TIMESTEP CELL      = 1.98677e-06                          *
+*                                                                              *
+*                                                                              *
+*    POSITIVITY STATE                                                          *
+*    MIN DENSITY                        = 9.9506e-01                           *
+*    MIN PRESSURE                       = 3.9724e+02                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*    TIME CONTROL                                                              *
+*    CURRENT TIME                       = 1.09737e-02                          *
+*    CURRENT DT                         = 2.19474e-03                          *
+*    CURRENT STEP                       =      5                               *
+*    WALL CLOCK TIMESTEP                = 1.11862e+00                          *
+*    WALL CLOCK TIMESTEP CELL           = 2.13360e-06                          *
+*    MEAN WALL CLOCK TIMESTEP CELL      = 2.13360e-06                          *
+*                                                                              *
+*                                                                              *
+*    POSITIVITY STATE                                                          *
+*    MIN DENSITY                        = 9.9418e-01                           *
+*    MIN PRESSURE                       = 3.9675e+02                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*    TIME CONTROL                                                              *
+*    CURRENT TIME                       = 1.31684e-02                          *
+*    CURRENT DT                         = 2.19474e-03                          *
+*    CURRENT STEP                       =      6                               *
+*    WALL CLOCK TIMESTEP                = 1.17968e+00                          *
+*    WALL CLOCK TIMESTEP CELL           = 2.25006e-06                          *
+*    MEAN WALL CLOCK TIMESTEP CELL      = 2.25006e-06                          *
+*                                                                              *
+*                                                                              *
+*    POSITIVITY STATE                                                          *
+*    MIN DENSITY                        = 9.9346e-01                           *
+*    MIN PRESSURE                       = 3.9635e+02                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*    TIME CONTROL                                                              *
+*    CURRENT TIME                       = 1.53632e-02                          *
+*    CURRENT DT                         = 2.19474e-03                          *
+*    CURRENT STEP                       =      7                               *
+*    WALL CLOCK TIMESTEP                = 1.05832e+00                          *
+*    WALL CLOCK TIMESTEP CELL           = 2.01858e-06                          *
+*    MEAN WALL CLOCK TIMESTEP CELL      = 2.01858e-06                          *
+*                                                                              *
+*                                                                              *
+*    POSITIVITY STATE                                                          *
+*    MIN DENSITY                        = 9.9288e-01                           *
+*    MIN PRESSURE                       = 3.9602e+02                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*    TIME CONTROL                                                              *
+*    CURRENT TIME                       = 1.75579e-02                          *
+*    CURRENT DT                         = 2.19474e-03                          *
+*    CURRENT STEP                       =      8                               *
+*    WALL CLOCK TIMESTEP                = 1.07266e+00                          *
+*    WALL CLOCK TIMESTEP CELL           = 2.04594e-06                          *
+*    MEAN WALL CLOCK TIMESTEP CELL      = 2.04594e-06                          *
+*                                                                              *
+*                                                                              *
+*    POSITIVITY STATE                                                          *
+*    MIN DENSITY                        = 9.9243e-01                           *
+*    MIN PRESSURE                       = 3.9577e+02                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*    TIME CONTROL                                                              *
+*    CURRENT TIME                       = 1.97527e-02                          *
+*    CURRENT DT                         = 2.19474e-03                          *
+*    CURRENT STEP                       =      9                               *
+*    WALL CLOCK TIMESTEP                = 1.14273e+00                          *
+*    WALL CLOCK TIMESTEP CELL           = 2.17958e-06                          *
+*    MEAN WALL CLOCK TIMESTEP CELL      = 2.17958e-06                          *
+*                                                                              *
+*                                                                              *
+*    POSITIVITY STATE                                                          *
+*    MIN DENSITY                        = 9.9211e-01                           *
+*    MIN PRESSURE                       = 3.9560e+02                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*    TIME CONTROL                                                              *
+*    CURRENT TIME                       = 2.19474e-02                          *
+*    CURRENT DT                         = 2.19474e-03                          *
+*    CURRENT STEP                       =     10                               *
+*    WALL CLOCK TIMESTEP                = 1.04354e+00                          *
+*    WALL CLOCK TIMESTEP CELL           = 1.99039e-06                          *
+*    MEAN WALL CLOCK TIMESTEP CELL      = 1.99039e-06                          *
+*                                                                              *
+*                                                                              *
+*    POSITIVITY STATE                                                          *
+*    MIN DENSITY                        = 9.9190e-01                           *
+*    MIN PRESSURE                       = 3.9548e+02                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*    TIME CONTROL                                                              *
+*    CURRENT TIME                       = 2.41421e-02                          *
+*    CURRENT DT                         = 2.19474e-03                          *
+*    CURRENT STEP                       =     11                               *
+*    WALL CLOCK TIMESTEP                = 1.05436e+00                          *
+*    WALL CLOCK TIMESTEP CELL           = 2.01103e-06                          *
+*    MEAN WALL CLOCK TIMESTEP CELL      = 2.00071e-06                          *
+*                                                                              *
+*                                                                              *
+*    POSITIVITY STATE                                                          *
+*    MIN DENSITY                        = 9.9177e-01                           *
+*    MIN PRESSURE                       = 3.9540e+02                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*    TIME CONTROL                                                              *
+*    CURRENT TIME                       = 2.63369e-02                          *
+*    CURRENT DT                         = 2.19474e-03                          *
+*    CURRENT STEP                       =     12                               *
+*    WALL CLOCK TIMESTEP                = 1.06104e+00                          *
+*    WALL CLOCK TIMESTEP CELL           = 2.02378e-06                          *
+*    MEAN WALL CLOCK TIMESTEP CELL      = 2.00840e-06                          *
+*                                                                              *
+*                                                                              *
+*    POSITIVITY STATE                                                          *
+*    MIN DENSITY                        = 9.9169e-01                           *
+*    MIN PRESSURE                       = 3.9536e+02                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*    TIME CONTROL                                                              *
+*    CURRENT TIME                       = 2.85316e-02                          *
+*    CURRENT DT                         = 2.19474e-03                          *
+*    CURRENT STEP                       =     13                               *
+*    WALL CLOCK TIMESTEP                = 1.05792e+00                          *
+*    WALL CLOCK TIMESTEP CELL           = 2.01782e-06                          *
+*    MEAN WALL CLOCK TIMESTEP CELL      = 2.01075e-06                          *
+*                                                                              *
+*                                                                              *
+*    POSITIVITY STATE                                                          *
+*    MIN DENSITY                        = 9.9165e-01                           *
+*    MIN PRESSURE                       = 3.9534e+02                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*    TIME CONTROL                                                              *
+*    CURRENT TIME                       = 3.07264e-02                          *
+*    CURRENT DT                         = 2.19474e-03                          *
+*    CURRENT STEP                       =     14                               *
+*    WALL CLOCK TIMESTEP                = 1.09425e+00                          *
+*    WALL CLOCK TIMESTEP CELL           = 2.08712e-06                          *
+*    MEAN WALL CLOCK TIMESTEP CELL      = 2.02603e-06                          *
+*                                                                              *
+*                                                                              *
+*    POSITIVITY STATE                                                          *
+*    MIN DENSITY                        = 9.9163e-01                           *
+*    MIN PRESSURE                       = 3.9532e+02                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*    TIME CONTROL                                                              *
+*    CURRENT TIME                       = 3.29211e-02                          *
+*    CURRENT DT                         = 2.19474e-03                          *
+*    CURRENT STEP                       =     15                               *
+*    WALL CLOCK TIMESTEP                = 1.01977e+00                          *
+*    WALL CLOCK TIMESTEP CELL           = 1.94505e-06                          *
+*    MEAN WALL CLOCK TIMESTEP CELL      = 2.01253e-06                          *
+*                                                                              *
+*                                                                              *
+*    POSITIVITY STATE                                                          *
+*    MIN DENSITY                        = 9.9161e-01                           *
+*    MIN PRESSURE                       = 3.9531e+02                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*    TIME CONTROL                                                              *
+*    CURRENT TIME                       = 3.51158e-02                          *
+*    CURRENT DT                         = 2.19474e-03                          *
+*    CURRENT STEP                       =     16                               *
+*    WALL CLOCK TIMESTEP                = 1.02161e+00                          *
+*    WALL CLOCK TIMESTEP CELL           = 1.94857e-06                          *
+*    MEAN WALL CLOCK TIMESTEP CELL      = 2.00339e-06                          *
+*                                                                              *
+*                                                                              *
+*    POSITIVITY STATE                                                          *
+*    MIN DENSITY                        = 9.9160e-01                           *
+*    MIN PRESSURE                       = 3.9531e+02                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*    TIME CONTROL                                                              *
+*    CURRENT TIME                       = 3.73106e-02                          *
+*    CURRENT DT                         = 2.19474e-03                          *
+*    CURRENT STEP                       =     17                               *
+*    WALL CLOCK TIMESTEP                = 1.02981e+00                          *
+*    WALL CLOCK TIMESTEP CELL           = 1.96421e-06                          *
+*    MEAN WALL CLOCK TIMESTEP CELL      = 1.99850e-06                          *
+*                                                                              *
+*                                                                              *
+*    POSITIVITY STATE                                                          *
+*    MIN DENSITY                        = 9.9159e-01                           *
+*    MIN PRESSURE                       = 3.9530e+02                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*    TIME CONTROL                                                              *
+*    CURRENT TIME                       = 3.95053e-02                          *
+*    CURRENT DT                         = 2.19474e-03                          *
+*    CURRENT STEP                       =     18                               *
+*    WALL CLOCK TIMESTEP                = 1.02991e+00                          *
+*    WALL CLOCK TIMESTEP CELL           = 1.96439e-06                          *
+*    MEAN WALL CLOCK TIMESTEP CELL      = 1.99471e-06                          *
+*                                                                              *
+*                                                                              *
+*    POSITIVITY STATE                                                          *
+*    MIN DENSITY                        = 9.9158e-01                           *
+*    MIN PRESSURE                       = 3.9530e+02                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*    TIME CONTROL                                                              *
+*    CURRENT TIME                       = 4.17001e-02                          *
+*    CURRENT DT                         = 2.19474e-03                          *
+*    CURRENT STEP                       =     19                               *
+*    WALL CLOCK TIMESTEP                = 1.09619e+00                          *
+*    WALL CLOCK TIMESTEP CELL           = 2.09081e-06                          *
+*    MEAN WALL CLOCK TIMESTEP CELL      = 2.00432e-06                          *
+*                                                                              *
+*                                                                              *
+*    POSITIVITY STATE                                                          *
+*    MIN DENSITY                        = 9.9158e-01                           *
+*    MIN PRESSURE                       = 3.9530e+02                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*    TIME CONTROL                                                              *
+*    CURRENT TIME                       = 4.38948e-02                          *
+*    CURRENT DT                         = 2.19474e-03                          *
+*    CURRENT STEP                       =     20                               *
+*    WALL CLOCK TIMESTEP                = 1.07434e+00                          *
+*    WALL CLOCK TIMESTEP CELL           = 2.04914e-06                          *
+*    MEAN WALL CLOCK TIMESTEP CELL      = 2.00839e-06                          *
+*                                                                              *
+*                                                                              *
+*    POSITIVITY STATE                                                          *
+*    MIN DENSITY                        = 9.9157e-01                           *
+*    MIN PRESSURE                       = 3.9529e+02                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*    TIME CONTROL                                                              *
+*    CURRENT TIME                       = 4.60895e-02                          *
+*    CURRENT DT                         = 2.19474e-03                          *
+*    CURRENT STEP                       =     21                               *
+*    WALL CLOCK TIMESTEP                = 1.03567e+00                          *
+*    WALL CLOCK TIMESTEP CELL           = 1.97539e-06                          *
+*    MEAN WALL CLOCK TIMESTEP CELL      = 2.00564e-06                          *
+*                                                                              *
+*                                                                              *
+*    POSITIVITY STATE                                                          *
+*    MIN DENSITY                        = 9.9157e-01                           *
+*    MIN PRESSURE                       = 3.9529e+02                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*    TIME CONTROL                                                              *
+*    CURRENT TIME                       = 4.82843e-02                          *
+*    CURRENT DT                         = 2.19474e-03                          *
+*    CURRENT STEP                       =     22                               *
+*    WALL CLOCK TIMESTEP                = 1.04019e+00                          *
+*    WALL CLOCK TIMESTEP CELL           = 1.98401e-06                          *
+*    MEAN WALL CLOCK TIMESTEP CELL      = 2.00398e-06                          *
+*                                                                              *
+*                                                                              *
+*    POSITIVITY STATE                                                          *
+*    MIN DENSITY                        = 9.9157e-01                           *
+*    MIN PRESSURE                       = 3.9529e+02                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*                                                                              *
+*    TIME CONTROL                                                              *
+*    CURRENT TIME                       = 5.04790e-02                          *
+*    CURRENT DT                         = 2.19474e-03                          *
+*    CURRENT STEP                       =     23                               *
+*    WALL CLOCK TIMESTEP                = 1.07300e+00                          *
+*    WALL CLOCK TIMESTEP CELL           = 2.04659e-06                          *
+*    MEAN WALL CLOCK TIMESTEP CELL      = 2.00702e-06                          *
+*                                                                              *
+*                                                                              *
+*    POSITIVITY STATE                                                          *
+*    MIN DENSITY                        = 9.9157e-01                           *
+*    MIN PRESSURE                       = 3.9529e+02                           *
+*                                                                              *
+*------------------------------------------------------------------------------*
+*------------------------------------------------------------------------------*
+*                                                                              *
+*                       SIMULATION FINISHED SUCCESSFULLY                       *
+*                          SIMULATION TIME 3.713e+01s                          *
+*                                                                              *
+*          _     _    __  __        _____  _      _   _  ___  ____   ____      *
+*         | |   / \   \ \/ /       |  ___|| |    | | | ||_ _||  _ \ / ___|     *
+*      _  | |  / _ \   \  /  _____ | |_   | |    | | | | | | | | | |\___ \     *
+*     | |_| | / ___ \  /  \ |_____||  _|  | |___ | |_| | | | | |_| | ___) |    *
+*      \___/ /_/   \_\/_/\_\       |_|    |_____| \___/ |___||____/ |____/     *
+*                                                                              *
+*                                                                              *
+*------------------------------------------------------------------------------*
