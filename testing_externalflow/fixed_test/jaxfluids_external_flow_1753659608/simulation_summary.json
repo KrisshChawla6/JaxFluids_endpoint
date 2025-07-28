@@ -1,0 +1,31 @@
+{
+  "simulation_info": {
+    "name": "jaxfluids_external_flow_1753659608",
+    "created_at": "2025-07-27 16:41:16",
+    "user_prompt": "Test corrected flat boundary structure for external flow",
+    "sdf_integrated": false
+  },
+  "agent_results": {
+    "numerical_setup_expert": {
+      "success": true,
+      "file": "testing_externalflow\\fixed_test\\jaxfluids_external_flow_1753659608\\numerical_setup.json",
+      "parameters_count": 30
+    },
+    "case_setup_expert": {
+      "success": true,
+      "file": "testing_externalflow\\fixed_test\\jaxfluids_external_flow_1753659608\\jaxfluids_external_flow_1753659608.json",
+      "parameters_count": 48
+    },
+    "execution_agent": {
+      "success": true,
+      "file": "testing_externalflow\\fixed_test\\jaxfluids_external_flow_1753659608\\run.py",
+      "execution_started": false
+    }
+  },
+  "generated_files": {
+    "numerical_setup.json": "testing_externalflow\\fixed_test\\jaxfluids_external_flow_1753659608\\numerical_setup.json",
+    "case_setup.json": "testing_externalflow\\fixed_test\\jaxfluids_external_flow_1753659608\\jaxfluids_external_flow_1753659608.json",
+    "run.py": "testing_externalflow\\fixed_test\\jaxfluids_external_flow_1753659608\\run.py"
+  },
+  "sdf_integration": null
+}

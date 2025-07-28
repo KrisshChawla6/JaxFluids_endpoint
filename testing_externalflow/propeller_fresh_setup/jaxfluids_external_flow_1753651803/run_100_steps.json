@@ -1,0 +1,131 @@
+{
+  "general": {
+    "case_name": "propeller_external_flow_M0.3_AOA0",
+    "end_time": 20.0,
+    "save_path": "./results",
+    "save_dt": 5.0
+  },
+  "restart": {
+    "flag": false,
+    "file_path": ""
+  },
+  "domain": {
+    "x": {
+      "cells": 64,
+      "range": [
+        -15300.0,
+        17000.0
+      ]
+    },
+    "y": {
+      "cells": 64,
+      "range": [
+        -11900.0,
+        11900.0
+      ]
+    },
+    "z": {
+      "cells": 64,
+      "range": [
+        -11900.0,
+        11900.0
+      ]
+    },
+    "decomposition": {
+      "split_x": 1,
+      "split_y": 1,
+      "split_z": 1
+    }
+  },
+  "boundary_conditions": {
+    "east": {
+      "type": "ZEROGRADIENT",
+      "levelset": {
+        "type": "ZEROGRADIENT"
+      }
+    },
+    "west": {
+      "type": "DIRICHLET",
+      "primitives_callable": {
+        "rho": 1.225,
+        "u": 102.09,
+        "v": 0.0,
+        "w": 0.0,
+        "p": 101325.0
+      },
+      "levelset": {
+        "type": "ZEROGRADIENT"
+      }
+    },
+    "north": {
+      "type": "SYMMETRY",
+      "levelset": {
+        "type": "ZEROGRADIENT"
+      }
+    },
+    "south": {
+      "type": "SYMMETRY",
+      "levelset": {
+        "type": "ZEROGRADIENT"
+      }
+    },
+    "top": {
+      "type": "SYMMETRY",
+      "levelset": {
+        "type": "ZEROGRADIENT"
+      }
+    },
+    "bottom": {
+      "type": "SYMMETRY",
+      "levelset": {
+        "type": "ZEROGRADIENT"
+      }
+    }
+  },
+  "initial_condition": {
+    "primitives": {
+      "rho": 1.225,
+      "u": 102.09,
+      "v": 0.0,
+      "w": 0.0,
+      "p": 101325.0
+    },
+    "levelset": "custom_sdf"
+  },
+  "material_properties": {
+    "equation_of_state": {
+      "model": "IdealGas",
+      "specific_heat_ratio": 1.4,
+      "specific_gas_constant": 287.0
+    },
+    "transport": {
+      "dynamic_viscosity": {
+        "model": "CUSTOM",
+        "value": 1.8e-05
+      },
+      "bulk_viscosity": 0.0,
+      "thermal_conductivity": {
+        "model": "CUSTOM",
+        "value": 0.024
+      }
+    }
+  },
+  "forcings": {
+    "gravity": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "nondimensionalization_parameters": {
+    "density_reference": 1.225,
+    "length_reference": 1.0,
+    "velocity_reference": 102.09,
+    "temperature_reference": 288.15
+  },
+  "output": {
+    "primitives": [],
+    "miscellaneous": [],
+    "levelset": []
+  }
+}

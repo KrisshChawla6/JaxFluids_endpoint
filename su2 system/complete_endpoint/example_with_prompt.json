@@ -1,0 +1,14 @@
+{
+  "object_mesh_file": "../packaged_wind-tunnel_endpoint/propeller_only.vtk",
+  
+  "tunnel_type": "standard",
+  "flow_direction": "+X",
+  "mesh_quality": "medium",
+  "domain_scale_factor": 1.0,
+  "generate_vtk": true,
+  
+  "prompt": "Create an Euler simulation at Mach 0.3 with 5 degrees angle of attack and 150 iterations for propeller analysis",
+  
+  "output_directory": "propeller_prompt_output",
+  "simulation_name": "propeller_prompt_analysis"
+} 

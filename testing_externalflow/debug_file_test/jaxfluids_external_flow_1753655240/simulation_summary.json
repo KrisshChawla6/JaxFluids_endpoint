@@ -1,0 +1,63 @@
+{
+  "simulation_info": {
+    "name": "jaxfluids_external_flow_1753655240",
+    "created_at": "2025-07-27 15:28:14",
+    "user_prompt": "Debug test - check file generation",
+    "sdf_integrated": true
+  },
+  "agent_results": {
+    "numerical_setup_expert": {
+      "success": true,
+      "file": "debug_file_test\\jaxfluids_external_flow_1753655240\\numerical_setup.json",
+      "parameters_count": 30
+    },
+    "case_setup_expert": {
+      "success": true,
+      "file": "debug_file_test\\jaxfluids_external_flow_1753655240\\jaxfluids_external_flow_1753655240.json",
+      "parameters_count": 53
+    },
+    "execution_agent": {
+      "success": true,
+      "file": "debug_file_test\\jaxfluids_external_flow_1753655240\\run.py",
+      "execution_started": false
+    }
+  },
+  "generated_files": {
+    "numerical_setup.json": "debug_file_test\\jaxfluids_external_flow_1753655240\\numerical_setup.json",
+    "case_setup.json": "debug_file_test\\jaxfluids_external_flow_1753655240\\jaxfluids_external_flow_1753655240.json",
+    "run.py": "debug_file_test\\jaxfluids_external_flow_1753655240\\run.py"
+  },
+  "sdf_integration": {
+    "sdf_file": "..\\immersed_boundary_endpoint_final\\sdf_files\\20250727_000843\\Rocket Engine_sdf_matrix.npy",
+    "sdf_metadata": {
+      "run_id": "20250727_000843",
+      "timestamp": "2025-07-27T00:08:43.851764",
+      "domain_bounds": [
+        -100.0,
+        -700.0,
+        -700.0,
+        1800.0,
+        700.0,
+        700.0
+      ],
+      "resolution": [
+        100,
+        100,
+        100
+      ],
+      "grid_spacing": [
+        19.19191919191919,
+        14.141414141414142,
+        14.141414141414142
+      ],
+      "sdf_stats": {
+        "min": -742.4127197265625,
+        "max": 8.01966667175293,
+        "mean": -224.31173706054688,
+        "std": 152.96156311035156
+      },
+      "total_points": 1000000,
+      "inside_fraction": 0.983718
+    }
+  }
+}

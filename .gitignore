@@ -35,4 +35,10 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
-*_production_optimized.json 
+*_production_optimized.json
+
+# Environment and sensitive files
+.env
+
+# External git repositories (should be submodules)
+jaxfluids/ 

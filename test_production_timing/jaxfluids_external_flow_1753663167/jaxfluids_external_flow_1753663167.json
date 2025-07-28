@@ -1,0 +1,126 @@
+{
+  "general": {
+    "case_name": "propeller_external_flow_high_fidelity",
+    "end_time": 12.0,
+    "save_path": "./results_propeller_hf",
+    "save_dt": 0.1
+  },
+  "restart": {
+    "flag": false,
+    "file_path": ""
+  },
+  "domain": {
+    "x": {
+      "cells": 512,
+      "range": [
+        -8.0,
+        16.0
+      ]
+    },
+    "y": {
+      "cells": 256,
+      "range": [
+        -12.0,
+        12.0
+      ]
+    },
+    "z": {
+      "cells": 256,
+      "range": [
+        -12.0,
+        12.0
+      ]
+    },
+    "decomposition": {
+      "split_x": 1,
+      "split_y": 1,
+      "split_z": 1
+    }
+  },
+  "boundary_conditions": {
+    "east": {
+      "type": "ZEROGRADIENT"
+    },
+    "west": {
+      "type": "DIRICHLET",
+      "primitives_callable": {
+        "rho": 1.225,
+        "u": 170.15,
+        "v": 0.0,
+        "w": 0.0,
+        "p": 101325.0
+      }
+    },
+    "north": {
+      "type": "SYMMETRY"
+    },
+    "south": {
+      "type": "SYMMETRY"
+    },
+    "top": {
+      "type": "SYMMETRY"
+    },
+    "bottom": {
+      "type": "SYMMETRY"
+    }
+  },
+  "initial_condition": {
+    "primitives": {
+      "rho": 1.225,
+      "u": 170.15,
+      "v": 0.0,
+      "w": 0.0,
+      "p": 101325.0
+    },
+    "levelset": "CUSTOM_SDF"
+  },
+  "material_properties": {
+    "equation_of_state": {
+      "model": "IdealGas",
+      "specific_heat_ratio": 1.4,
+      "specific_gas_constant": 287.0
+    },
+    "transport": {
+      "dynamic_viscosity": {
+        "model": "CUSTOM",
+        "value": 1.81e-05
+      },
+      "bulk_viscosity": 0.0,
+      "thermal_conductivity": {
+        "model": "CUSTOM",
+        "value": 0.025
+      }
+    }
+  },
+  "nondimensionalization_parameters": {
+    "density_reference": 1.225,
+    "length_reference": 1.0,
+    "velocity_reference": 170.15,
+    "temperature_reference": 288.15
+  },
+  "output": {
+    "primitives": [
+      "density",
+      "velocity",
+      "pressure",
+      "temperature"
+    ],
+    "conservatives": [
+      "mass",
+      "momentum",
+      "energy"
+    ],
+    "levelset": [
+      "levelset",
+      "volume_fraction"
+    ],
+    "miscellaneous": [
+      "mach_number",
+      "vorticity",
+      "q_criterion",
+      "lambda2_criterion",
+      "schlieren",
+      "speed_of_sound"
+    ]
+  }
+}

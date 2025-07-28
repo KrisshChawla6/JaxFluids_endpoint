@@ -1,0 +1,31 @@
+{
+  "simulation_info": {
+    "name": "jaxfluids_external_flow_1753659465",
+    "created_at": "2025-07-27 16:39:22",
+    "user_prompt": "High Reynolds external flow with corrected boundary conditions - test flat structure",
+    "sdf_integrated": false
+  },
+  "agent_results": {
+    "numerical_setup_expert": {
+      "success": true,
+      "file": "testing_externalflow\\corrected_autonomous_test\\jaxfluids_external_flow_1753659465\\numerical_setup.json",
+      "parameters_count": 30
+    },
+    "case_setup_expert": {
+      "success": true,
+      "file": "testing_externalflow\\corrected_autonomous_test\\jaxfluids_external_flow_1753659465\\jaxfluids_external_flow_1753659465.json",
+      "parameters_count": 47
+    },
+    "execution_agent": {
+      "success": true,
+      "file": "testing_externalflow\\corrected_autonomous_test\\jaxfluids_external_flow_1753659465\\run.py",
+      "execution_started": false
+    }
+  },
+  "generated_files": {
+    "numerical_setup.json": "testing_externalflow\\corrected_autonomous_test\\jaxfluids_external_flow_1753659465\\numerical_setup.json",
+    "case_setup.json": "testing_externalflow\\corrected_autonomous_test\\jaxfluids_external_flow_1753659465\\jaxfluids_external_flow_1753659465.json",
+    "run.py": "testing_externalflow\\corrected_autonomous_test\\jaxfluids_external_flow_1753659465\\run.py"
+  },
+  "sdf_integration": null
+}

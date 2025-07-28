@@ -1,9 +1,9 @@
 {
   "general": {
     "case_name": "subsonic_wind_tunnel_levelset_test",
-    "end_time": 10.0,
+    "end_time": 0.0034999999999999996,
     "save_path": "./results_subsonic_test",
-    "save_dt": 1.0
+    "save_dt": 0.00034999999999999994
   },
   "restart": {
     "flag": false,
@@ -72,7 +72,7 @@
       "w": 0.0,
       "p": 101325.0
     },
-    "levelset": "CUSTOM_SDF(sdf_data\\20250727_171346\\propeller_sdf_matrix.npy)"
+    "levelset": "SPHERE(center=[0.0, 0.0, 0.0], radius=0.5)"
   },
   "material_properties": {
     "equation_of_state": {
@@ -99,17 +99,9 @@
     "temperature_reference": 288.15
   },
   "output": {
-    "primitives": [
-      "density",
-      "velocity",
-      "pressure"
-    ],
-    "miscellaneous": [
-      "mach_number"
-    ],
-    "levelset": [
-      "volume_fraction"
-    ]
+    "primitives": [],
+    "miscellaneous": [],
+    "levelset": []
   },
   "forcings": {
     "gravity": [

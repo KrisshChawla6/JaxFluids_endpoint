@@ -1,0 +1,31 @@
+{
+  "simulation_info": {
+    "name": "jaxfluids_external_flow_1753658670",
+    "created_at": "2025-07-27 16:25:27",
+    "user_prompt": "Test ultra-comprehensive JAX-Fluids expert database with perfect configuration",
+    "sdf_integrated": false
+  },
+  "agent_results": {
+    "numerical_setup_expert": {
+      "success": true,
+      "file": "testing_externalflow\\test_ultra_comprehensive\\jaxfluids_external_flow_1753658670\\numerical_setup.json",
+      "parameters_count": 30
+    },
+    "case_setup_expert": {
+      "success": true,
+      "file": "testing_externalflow\\test_ultra_comprehensive\\jaxfluids_external_flow_1753658670\\jaxfluids_external_flow_1753658670.json",
+      "parameters_count": 47
+    },
+    "execution_agent": {
+      "success": true,
+      "file": "testing_externalflow\\test_ultra_comprehensive\\jaxfluids_external_flow_1753658670\\run.py",
+      "execution_started": false
+    }
+  },
+  "generated_files": {
+    "numerical_setup.json": "testing_externalflow\\test_ultra_comprehensive\\jaxfluids_external_flow_1753658670\\numerical_setup.json",
+    "case_setup.json": "testing_externalflow\\test_ultra_comprehensive\\jaxfluids_external_flow_1753658670\\jaxfluids_external_flow_1753658670.json",
+    "run.py": "testing_externalflow\\test_ultra_comprehensive\\jaxfluids_external_flow_1753658670\\run.py"
+  },
+  "sdf_integration": null
+}
