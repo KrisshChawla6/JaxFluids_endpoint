@@ -1,0 +1,95 @@
+{
+  "general": {
+    "case_name": "intelligent_boundary_rocket_nozzle",
+    "end_time": 0.01,
+    "save_path": "./results_intelligent_bc",
+    "save_dt": 0.001
+  },
+  "domain": {
+    "x": {
+      "cells": 200,
+      "range": [
+        -0.2,
+        0.4
+      ]
+    },
+    "y": {
+      "cells": 100,
+      "range": [
+        -0.15,
+        0.15
+      ]
+    },
+    "z": {
+      "cells": 1,
+      "range": [
+        0.0,
+        1.0
+      ]
+    },
+    "decomposition": {
+      "split_x": 1,
+      "split_y": 1,
+      "split_z": 1
+    }
+  },
+  "boundary_conditions": {
+    "west": {
+      "type": "SIMPLE_INFLOW",
+      "primitives_callable": {
+        "rho": 0.47149477314365773,
+        "u": 4393.212947263085,
+        "v": 0.0,
+        "w": 0.0,
+        "p": 7000000.0
+      },
+      "description": "Rocket chamber conditions at inlet"
+    },
+    "east": {
+      "type": "SIMPLE_OUTFLOW",
+      "primitives_callable": {
+        "p": 101325
+      },
+      "description": "Ambient pressure at nozzle exit"
+    },
+    "north": {
+      "type": "NOSLIP",
+      "description": "No-slip wall condition for nozzle surfaces"
+    },
+    "south": {
+      "type": "NOSLIP",
+      "description": "No-slip wall condition for nozzle surfaces"
+    },
+    "top": {
+      "type": "INACTIVE"
+    },
+    "bottom": {
+      "type": "INACTIVE"
+    }
+  },
+  "initial_condition": {
+    "rho": 0.23574738657182887,
+    "u": 439.3212947263085,
+    "v": 0.0,
+    "w": 0.0,
+    "p": 2100000.0
+  },
+  "material_properties": {
+    "equation_of_state": {
+      "model": "IdealGas",
+      "specific_heat_ratio": 1.3,
+      "specific_gas_constant": 4124.0
+    },
+    "transport": {
+      "dynamic_viscosity": {
+        "model": "CUSTOM",
+        "value": 5e-05
+      },
+      "bulk_viscosity": 0.0,
+      "thermal_conductivity": {
+        "model": "CUSTOM",
+        "value": 0.1
+      }
+    }
+  }
+}
