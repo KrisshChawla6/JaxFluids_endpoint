@@ -535,12 +535,25 @@ sim_manager.simulate(buffers)
 - Levelset quantities: volume_fraction, levelset, normal
 - Custom post-processing and visualization
 
-**CONFIGURATION OPTIMIZATION:**
-JAX-Fluids configurations may need optimization for stability:
-- Single device decomposition for development
-- Proper output configuration to avoid internal bugs
-- Correct nondimensionalization parameters
-- Appropriate boundary condition setup
+ **CONFIGURATION OPTIMIZATION:**
+ JAX-Fluids configurations may need optimization for stability:
+ - Single device decomposition for development
+ - Proper output configuration to avoid internal bugs
+ - Correct nondimensionalization parameters
+ - Appropriate boundary condition setup
+ 
+ **SIMULATION TIME INTELLIGENCE:**
+ Choose simulation parameters based on physics and user intent:
+ - Quick tests/debugging: 0.001-0.1 time units (hundreds of iterations)
+ - Development/validation: 1-10 time units (thousands of iterations)  
+ - Production CFD: 10-1000+ time units (tens of thousands to millions of iterations)
+ - Research/high-fidelity: 100-10000+ time units (millions+ iterations)
+ 
+ Consider flow physics:
+ - Transient phenomena: Longer times to capture evolution
+ - Steady-state convergence: Time for flow to develop and stabilize
+ - External flow: Time for wake development and force convergence
+ - Shock interactions: Time for wave propagation across domain
 
 SIMULATION CONTEXT:
 - Type: {analysis['simulation_type'].value} ({analysis['dimension']})
@@ -565,15 +578,13 @@ def modify_config_for_production(case_file: str) -> str:
     with open(case_file, 'r', encoding='utf-8') as f:
         case_config = json.load(f)
     
-    # VectraSim's production-grade optimizations
-    # Configure proper output settings for stable execution
-    if 'output' in case_config:
-        # Keep essential outputs but configure them properly for stability
-        case_config['output'] = {{
-            "primitives": ["density", "velocity", "pressure"],  # Essential flow quantities
-            "miscellaneous": ["mach_number"],                   # Key derived quantities
-            "levelset": ["volume_fraction"]                     # Proper levelset output
-        }}
+         # VectraSim's proven optimizations for stability
+     # Configure minimal output to avoid JAX-Fluids internal bugs
+     case_config['output'] = {{
+         "primitives": [],     # Minimal output for stability
+         "miscellaneous": [], 
+         "levelset": []        # Disable levelset output (avoids known JAX-Fluids bug)
+     }}
     
     # Ensure single device decomposition for development/testing
     if 'domain' in case_config and 'decomposition' in case_config['domain']:
@@ -593,10 +604,19 @@ def modify_config_for_production(case_file: str) -> str:
     if 'forcings' not in case_config:
         case_config['forcings'] = {{'gravity': [0.0, 0.0, 0.0]}}
     
-    # Configure reasonable simulation time for initial testing
-    if case_config['general']['end_time'] > 100.0:
-        case_config['general']['end_time'] = 10.0     # Reasonable test duration
-        case_config['general']['save_dt'] = 1.0       # Regular output interval
+         # Configure intelligent simulation time based on physics and intent
+     if 'general' in case_config:
+         # Let the AI agent determine appropriate simulation time
+         # Only apply minimal safety bounds - don't override AI decisions
+         current_end_time = case_config['general'].get('end_time', 1.0)
+         
+         # Apply reasonable bounds but preserve AI autonomy
+         if current_end_time > 1000.0:  # Very long simulations
+             case_config['general']['save_dt'] = current_end_time / 100  # Save every ~1% progress
+         elif current_end_time > 10.0:  # Medium simulations
+             case_config['general']['save_dt'] = current_end_time / 50   # Save every ~2% progress
+         else:  # Short simulations (testing/debugging)
+             case_config['general']['save_dt'] = current_end_time / 10   # Save every ~10% progress
     
          # Handle SDF path structure - look for sdf_data subdirectory
      if 'initial_condition' in case_config and 'levelset' in case_config['initial_condition']:
@@ -646,14 +666,14 @@ VectraSim - Advanced Computational Physics Platform
 \"\"\"
 ```
 
-Use proper JAX-Fluids API patterns:
-```python
-input_manager = InputManager(optimized_case_file, numerical_file)
-initialization_manager = InitializationManager(input_manager)
-sim_manager = SimulationManager(input_manager)
-buffers = initialization_manager.initialization()
-sim_manager.simulate(buffers)
-```
+ Use proper JAX-Fluids API patterns - PROVEN WORKING:
+ ```python
+ input_manager = InputManager(optimized_case_file, numerical_file)
+ initialization_manager = InitializationManager(input_manager)
+ sim_manager = SimulationManager(input_manager)
+ buffers = initialization_manager.initialization()
+ sim_manager.simulate(buffers)  # This works - do NOT use advance() method
+ ```
 
 Create a production-quality script that handles errors gracefully and will execute successfully with the provided configuration files."""
         

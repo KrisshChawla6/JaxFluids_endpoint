@@ -1,11 +1,16 @@
 # Large simulation files
 *.h5
 *.npz
+*.npy
 *_sdf_matrix.npy
 
 # Generated simulation results
 results*/
 sdf_data/
+
+# Generated optimization files  
+*_production_optimized.json
+*_adaptive_optimized.json
 
 # Python cache
 __pycache__/
