@@ -1,0 +1,377 @@
+Metadata-Version: 2.4
+Name: jax-fluids-postprocess
+Version: 1.0.0
+Summary: Professional post-processing toolkit for JAX-Fluids simulation results
+Home-page: https://github.com/your-org/jax-fluids-postprocess
+Author: JAX-Fluids Post-Processing Team
+Author-email: contact@jaxfluids.com
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Topic :: Scientific/Engineering :: Physics
+Classifier: Topic :: Scientific/Engineering :: Visualization
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: h5py>=3.0.0
+Requires-Dist: numpy>=1.20.0
+Requires-Dist: scipy>=1.7.0
+Requires-Dist: pyvista>=0.38.0
+Requires-Dist: matplotlib>=3.5.0
+Requires-Dist: pathlib2>=2.3.0; python_version < "3.4"
+Requires-Dist: typing_extensions>=4.0.0; python_version < "3.8"
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: black; extra == "dev"
+Requires-Dist: flake8; extra == "dev"
+Requires-Dist: mypy; extra == "dev"
+Provides-Extra: docs
+Requires-Dist: sphinx; extra == "docs"
+Requires-Dist: sphinx-rtd-theme; extra == "docs"
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# JAX-Fluids Post-Processing Package
+
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
+A professional, easy-to-use toolkit for post-processing JAX-Fluids simulation results with interactive 3D visualization, mesh embedding, and animation capabilities.
+
+## 🚀 Features
+
+### 🔬 **Data Processing**
+- **Native JAX-Fluids Support**: Seamless integration with JAX-Fluids HDF5 output
+- **Multiple Variables**: Extract velocity, pressure, density, temperature, vorticity, Q-criterion
+- **Time Series Analysis**: Process single time steps or entire time series
+- **Flexible I/O**: Support for various input/output formats
+
+### 🎨 **Interactive Visualization** 
+- **3D PyVista Integration**: Professional-grade interactive visualization
+- **Dynamic Slice Planes**: Real-time slice control with slider widget
+- **Mesh Embedding**: Automatic scaling and integration of 3D meshes (.msh format)
+- **Flow Streamlines**: Automatic streamline generation and visualization
+- **Multiple Views**: Switch between XY, XZ, YZ planes with keyboard shortcuts
+
+### 🎬 **Animation & Export**
+- **2D Time Animations**: Create GIF and MP4 animations of flow evolution
+- **VTK Export**: Export to industry-standard VTK formats for ParaView
+- **High-Quality Screenshots**: Professional visualization output
+- **Batch Processing**: Handle multiple time steps and variables
+
+### 💻 **Professional Interface**
+- **Clean Python API**: Intuitive function-based interface
+- **Comprehensive CLI**: Command-line tools for all common tasks
+- **Extensive Examples**: Ready-to-use example scripts and workflows
+
+## 📦 Installation
+
+### From Source
+```bash
+git clone https://github.com/your-org/jax-fluids-postprocess.git
+cd jax-fluids-postprocess
+pip install -e .
+```
+
+### Dependencies
+The package requires Python 3.8+ and the following packages:
+- `numpy` - Numerical computing
+- `h5py` - HDF5 file reading
+- `pyvista` - 3D visualization
+- `matplotlib` - 2D plotting and animations
+- `scipy` - Scientific computing
+- `vtk` - Visualization toolkit
+
+## 🏃‍♂️ Quick Start
+
+### Python API
+```python
+import jax_fluids_postprocess as jfp
+
+# Quick visualization
+jfp.quick_visualization(
+    "simulation/domain",
+    variable="velocity_magnitude",
+    mesh_path="mesh/propeller.msh"
+)
+
+# Full workflow
+results = jfp.process_simulation("simulation/domain", "output")
+jfp.create_visualization(results['flow_data'], variable="pressure")
+jfp.export_vtk(results['flow_data'], "vtk_output")
+```
+
+### Command Line Interface
+```bash
+# Quick visualization
+jax-fluids-postprocess quick-viz simulation/domain --variable pressure
+
+# Full processing with visualization and export
+jax-fluids-postprocess process simulation/domain output --plot --export-vtk
+
+# Create animation  
+jax-fluids-postprocess animate simulation/domain output --variable velocity_magnitude
+```
+
+## 📚 Documentation
+
+### 🎯 **Core API Functions**
+
+#### `process_simulation(results_path, output_path, variables=None, time_index=-1)`
+Process JAX-Fluids simulation results and extract flow variables.
+
+**Example:**
+```python
+results = jfp.process_simulation(
+    "simulation/domain", 
+    "output",
+    time_index=-1  # Last time step
+)
+print(f"Grid shape: {results['grid_info']['shape']}")
+print(f"Variables: {list(results['flow_data'].keys())}")
+```
+
+#### `create_visualization(flow_data, variable, mesh_path=None, interactive=True)`
+Create interactive 3D visualization with optional mesh embedding.
+
+**Example:**
+```python
+jfp.create_visualization(
+    flow_data=results['flow_data'],
+    variable="pressure", 
+    mesh_path="mesh/geometry.msh",
+    interactive=True
+)
+```
+
+#### `export_vtk(flow_data, output_path, mesh_path=None)`
+Export flow data and mesh to VTK formats for ParaView.
+
+**Example:**
+```python
+vtk_files = jfp.export_vtk(
+    results['flow_data'],
+    "vtk_output",
+    mesh_path="mesh/geometry.msh"
+)
+print(f"Created: {vtk_files}")
+```
+
+#### `create_animation(results_path, output_path, variable, plane="xy", fps=10)`
+Create 2D time-series animation of flow variables.
+
+**Example:**
+```python
+animation_path = jfp.create_animation(
+    "simulation/domain",
+    "animations",
+    variable="velocity_magnitude",
+    plane="xy",
+    fps=15
+)
+```
+
+### 🎮 **Interactive Controls**
+
+When using interactive visualization:
+- **Mouse**: Left-drag (rotate), Right-drag (zoom), Middle-drag (pan)
+- **Keyboard Shortcuts**:
+  - `1` = Switch to XY plane
+  - `2` = Switch to XZ plane 
+  - `3` = Switch to YZ plane
+  - `P` = Create 2D animation
+- **Slider**: Dynamically adjust slice position (0% = bottom, 100% = top)
+
+### 🔧 **Advanced Usage**
+
+#### Using Classes Directly
+```python
+# Initialize processor
+processor = jfp.FluidProcessor("simulation/domain", "output")
+
+# Extract specific time step
+flow_data = processor.extract_flow_variables(time_index=5)
+
+# Get metadata
+metadata = processor.get_simulation_metadata()
+
+# Custom visualization
+visualizer = jfp.InteractiveVisualizer()
+visualizer.show_interactive(flow_data, variable="density")
+```
+
+#### Data Reader for Analysis
+```python
+# Initialize reader
+reader = jfp.DataReader("simulation/domain")
+
+# Get available variables
+variables = reader.get_variable_names()
+
+# Read specific data
+pressure = reader.read_variable("pressure", time_index=0)
+velocity_data = reader.read_variables(["velocity"], time_index=-1)
+
+# Time series analysis
+time_series = reader.read_time_series("velocity_magnitude")
+```
+
+#### Batch Processing
+```python
+# Process multiple variables and time steps
+results = jfp.batch_export(
+    "simulation/domain",
+    "batch_output",
+    variables=["velocity_magnitude", "pressure", "density"],
+    time_indices=[0, 5, 10, 15, 20]
+)
+```
+
+## 📋 **CLI Reference**
+
+### Commands
+
+#### `quick-viz` - Quick Visualization
+```bash
+jax-fluids-postprocess quick-viz RESULTS_PATH [OPTIONS]
+```
+**Options:**
+- `--variable VAR` - Variable to visualize (default: velocity_magnitude)
+- `--mesh-path PATH` - Path to mesh file
+
+#### `process` - Full Processing Workflow
+```bash
+jax-fluids-postprocess process RESULTS_PATH OUTPUT_PATH [OPTIONS]
+```
+**Options:**
+- `--variable VAR` - Variable to process
+- `--time-index N` - Time step index (-1 for last)
+- `--mesh-path PATH` - Path to mesh file
+- `--plot` - Show interactive visualization
+- `--export-vtk` - Export to VTK format
+- `--save-screenshot PATH` - Save screenshot
+
+#### `animate` - Create Animation
+```bash
+jax-fluids-postprocess animate RESULTS_PATH OUTPUT_PATH [OPTIONS]
+```
+**Options:**
+- `--variable VAR` - Variable to animate
+- `--plane PLANE` - Plane orientation (xy/xz/yz)
+- `--plane-value VAL` - Plane position (0.0-1.0)
+- `--fps N` - Frames per second
+- `--format FORMAT` - Output format (gif/mp4)
+
+#### `export` - Export to VTK
+```bash
+jax-fluids-postprocess export RESULTS_PATH OUTPUT_PATH [OPTIONS]
+```
+**Options:**
+- `--variables VAR1 VAR2 ...` - Variables to export
+- `--time-indices N1 N2 ...` - Time indices to export
+- `--mesh-path PATH` - Path to mesh file
+
+## 🎯 **Examples**
+
+See the `examples/` directory for comprehensive usage examples:
+- `examples/basic_usage.py` - Python API examples
+- `examples/cli_examples.sh` - Command-line usage examples
+
+## 🔧 **Supported Variables**
+
+| Variable | Description | Units |
+|----------|-------------|-------|
+| `velocity_magnitude` | Flow speed | m/s |
+| `velocity_u/v/w` | Velocity components | m/s |
+| `pressure` | Static pressure | Pa |
+| `density` | Fluid density | kg/m³ |
+| `temperature` | Temperature field | K |
+| `vorticity` | Vorticity magnitude | 1/s |
+| `q_criterion` | Q-criterion for vortex detection | 1/s² |
+
+## 📁 **File Formats**
+
+### Input
+- **Simulation Data**: JAX-Fluids HDF5 files (`.h5`)
+- **Mesh Files**: Gmsh format (`.msh`)
+- **Configuration**: JSON format (optional)
+
+### Output
+- **VTK Files**: Structured grid (`.vts`), Mesh (`.vtp`)
+- **Animations**: GIF (`.gif`), MP4 (`.mp4`)
+- **Images**: PNG (`.png`)
+- **Metadata**: JSON (`.json`)
+
+## 🔄 **Workflow Examples**
+
+### Research Workflow
+1. **Process**: `jax-fluids-postprocess process simulation/domain results --export-vtk`
+2. **Analyze**: Open VTK files in ParaView for detailed analysis
+3. **Visualize**: `jax-fluids-postprocess quick-viz simulation/domain --variable pressure`
+4. **Animate**: `jax-fluids-postprocess animate simulation/domain animations --variable velocity_magnitude`
+
+### Presentation Workflow
+1. **Screenshot**: `jax-fluids-postprocess process simulation/domain output --save-screenshot figure.png`
+2. **Animation**: `jax-fluids-postprocess animate simulation/domain output --fps 15 --format mp4`
+3. **Export**: `jax-fluids-postprocess export simulation/domain vtk_files --variables velocity_magnitude pressure`
+
+## 🐛 **Troubleshooting**
+
+### Common Issues
+
+**Mesh not visible**
+- Ensure mesh file path is correct and file exists
+- Check mesh file format (must be `.msh`)
+- Verify mesh scaling (automatic scaling applied)
+
+**No flow data found**
+- Check JAX-Fluids simulation configuration
+- Ensure `output` section includes required variables
+- Verify simulation completed successfully
+
+**OpenGL/VTK warnings**
+- These are usually harmless graphics warnings
+- Update graphics drivers if visualization issues persist
+
+**Animation creation fails**
+- Ensure ffmpeg is installed for MP4 output
+- Check available disk space
+- Try GIF format as fallback
+
+### Performance Tips
+- Use subsampling for large datasets: `subsample_factor=2`
+- Close other graphics applications during visualization
+- Process specific time ranges instead of full time series
+
+## 📄 **License**
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🤝 **Contributing**
+
+Contributions are welcome! Please read the contributing guidelines and submit pull requests for any improvements.
+
+## 📧 **Support**
+
+For questions, issues, or feature requests:
+- Create an issue on GitHub
+- Check the examples and documentation
+- Review common troubleshooting steps
+
+---
+
+**JAX-Fluids Post-Processing** - Making fluid simulation analysis easy and beautiful! 🌊✨

@@ -1,0 +1,130 @@
+{
+  "general": {
+    "case_name": "jaxfluids_internal_flow_1753715763",
+    "end_time": 0.05,
+    "save_path": "./output/",
+    "save_dt": 0.005
+  },
+  "restart": {
+    "flag": false,
+    "file_path": ""
+  },
+  "domain": {
+    "x": {
+      "cells": 128,
+      "range": [
+        -200.0,
+        1800.0
+      ]
+    },
+    "y": {
+      "cells": 64,
+      "range": [
+        -800.0,
+        800.0
+      ]
+    },
+    "z": {
+      "cells": 64,
+      "range": [
+        -800.0,
+        800.0
+      ]
+    },
+    "decomposition": {
+      "split_x": 1,
+      "split_y": 1,
+      "split_z": 1
+    }
+  },
+  "boundary_conditions": {
+    "east": {
+      "type": "SYMMETRY"
+    },
+    "west": {
+      "type": "SYMMETRY"
+    },
+    "north": {
+      "type": "SYMMETRY"
+    },
+    "south": {
+      "type": "SYMMETRY"
+    },
+    "top": {
+      "type": "SYMMETRY"
+    },
+    "bottom": {
+      "type": "SYMMETRY"
+    }
+  },
+  "initial_condition": {
+    "primitives": {
+      "rho": 1.0,
+      "u": 10.0,
+      "v": 0.0,
+      "w": 0.0,
+      "p": 1000000.0
+    },
+    "levelset": "C:\\Users\\kriss\\Desktop\\Endpoint JAX  FLuids\\testing_internal\\bc_processed\\subdirectory_5/internal_flow_bc_sdf_matrix.npy"
+  },
+  "forcings": {
+    "mass_flow": {
+      "direction": "x",
+      "target_value": 15.0,
+      "inlet_mask_file": "C:\\Users\\kriss\\Desktop\\Endpoint JAX  FLuids\\testing_internal\\bc_processed\\subdirectory_5\\internal_flow_bc_inlet_mask.npy",
+      "outlet_mask_file": "C:\\Users\\kriss\\Desktop\\Endpoint JAX  FLuids\\testing_internal\\bc_processed\\subdirectory_5\\internal_flow_bc_outlet_mask.npy"
+    },
+    "temperature": {
+      "target_value": 3580.0,
+      "inlet_conditions": {
+        "pressure": 6900000.0,
+        "temperature": 3580.0,
+        "velocity": 50.0
+      },
+      "outlet_conditions": {
+        "pressure": 101325.0,
+        "temperature": 288.15
+      }
+    }
+  },
+  "material_properties": {
+    "equation_of_state": {
+      "model": "IdealGas",
+      "specific_heat_ratio": 1.4,
+      "specific_gas_constant": 287.0
+    },
+    "transport": {
+      "dynamic_viscosity": {
+        "model": "CUSTOM",
+        "value": 1.8e-05
+      },
+      "bulk_viscosity": 0.0,
+      "thermal_conductivity": {
+        "model": "PRANDTL",
+        "prandtl_number": 0.72
+      }
+    }
+  },
+  "nondimensionalization_parameters": {
+    "density_reference": 1.0,
+    "length_reference": 1.0,
+    "velocity_reference": 50.0,
+    "temperature_reference": 288.15
+  },
+  "output": {
+    "domain": {
+      "write_interval": 10,
+      "write_start": 0,
+      "primitives": [
+        "density",
+        "velocity",
+        "pressure",
+        "temperature"
+      ],
+      "derived": [
+        "mach_number",
+        "speed_of_sound"
+      ]
+    }
+  }
+}

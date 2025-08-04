@@ -172,7 +172,7 @@ Generate a complete Python script that follows JAX-Fluids best practices.
 Always generate complete, executable Python code only."""
     
     def _get_fallback_script(self, numerical_setup: Dict[str, Any], case_setup: Dict[str, Any], output_dir: str) -> str:
-        """Production-ready JAX-Fluids script using VectraSim's proven approach"""
+        """Production-ready JAX-Fluids script using VectraSim's proven approach with intelligent optimizations"""
         
         end_time = numerical_setup.get('end_time', 1.0)
         case_name = case_setup.get('general', {}).get('case_name', 'external_flow')
@@ -200,42 +200,253 @@ import time
 import json
 from typing import Dict, Any
 
-def modify_config_for_production(case_file: str) -> str:
-    \"\"\"Modify case configuration for stable JAX-Fluids execution\"\"\"
+def modify_config_for_production(case_file: str, numerical_file: str = None) -> str:
+    \"\"\"Intelligently modify configuration for stable JAX-Fluids execution based on environment and requirements\"\"\"
     
-    print("🔧 Optimizing configuration for JAX-Fluids compatibility...")
+    print("🔧 Applying intelligent production optimizations...")
     
-    # Load original config
+    # Load original configs
     with open(case_file, 'r', encoding='utf-8') as f:
         case_config = json.load(f)
     
-    # Apply VectraSim's proven optimizations
-    # Disable levelset output to avoid JAX-Fluids output writing bug
-    case_config['output'] = {{
-        "primitives": [],     # Minimal output for stability
-        "miscellaneous": [], 
-        "levelset": []        # Disable levelset output (avoids known JAX-Fluids bug)
-    }}
+    numerical_config = None
+    if numerical_file and os.path.exists(numerical_file):
+        with open(numerical_file, 'r', encoding='utf-8') as f:
+            numerical_config = json.load(f)
     
-    # Ensure single device decomposition
-    if 'domain' in case_config and 'decomposition' in case_config['domain']:
-        case_config['domain']['decomposition'] = {{
-            'split_x': 1,
-            'split_y': 1, 
-            'split_z': 1
-        }}
+    # Detect execution environment (HPCC vs local)
+    is_hpcc_environment = _detect_hpcc_environment()
     
-    # Add gravity if missing (required by JAX-Fluids)
-    if 'forcings' not in case_config:
-        case_config['forcings'] = {{'gravity': [0.0, 0.0, 0.0]}}
+    # Apply intelligent output strategy based on environment and user intent
+    output_strategy = _determine_output_strategy(case_config, is_hpcc_environment)
+    
+    # PRESERVE intelligent output config unless we have a specific override reason
+    if output_strategy.get('preserve_original', False):
+        print(f"🎯 Output strategy: {{output_strategy['strategy_name']}} (preserving intelligent config)")
+    else:
+        case_config['output'] = output_strategy['output_config']
+        print(f"🎯 Output strategy: {{output_strategy['strategy_name']}}")
+    
+    # Intelligent simulation duration and save frequency
+    timing_config = _optimize_simulation_timing(case_config, is_hpcc_environment)
+    if 'general' in case_config:
+        case_config['general'].update(timing_config)
+        print(f"⏰ Timing optimized: {{timing_config['end_time']}}s end time, save every {{timing_config['save_dt']}}s")
+    
+    # Adaptive mesh resolution based on environment capabilities
+    if not is_hpcc_environment:
+        mesh_config = _optimize_mesh_for_environment(case_config, is_hpcc_environment)
+        if mesh_config['adjusted']:
+            case_config['domain'].update(mesh_config['domain_config'])
+            print(f"🔧 Mesh adapted for local environment: {{mesh_config['description']}}")
+    else:
+        print("🚀 HPCC detected: Preserving high-resolution mesh for maximum accuracy")
+    
+    # Intelligent numerical parameter optimization
+    if numerical_config:
+        numerical_optimizations = _optimize_numerical_params(numerical_config, case_config, is_hpcc_environment)
+        if numerical_optimizations['modified']:
+            numerical_file_optimized = numerical_file.replace('.json', '_production_optimized.json')
+            with open(numerical_file_optimized, 'w', encoding='utf-8') as f:
+                json.dump(numerical_optimizations['config'], f, indent=2)
+            print(f"🔧 Numerical parameters optimized: {{numerical_optimizations['description']}}")
+    
+    # Essential JAX-Fluids compatibility fixes
+    case_config = _apply_essential_fixes(case_config)
     
     # Write optimized config
-    optimized_file = case_file.replace('.json', '_optimized.json')
+    optimized_file = case_file.replace('.json', '_production_optimized.json')
     with open(optimized_file, 'w', encoding='utf-8') as f:
         json.dump(case_config, f, indent=2)
     
-    print(f"✅ Configuration optimized: {{os.path.basename(optimized_file)}}")
+    print(f"✅ Intelligent optimizations applied: {{os.path.basename(optimized_file)}}")
     return optimized_file
+
+def _detect_hpcc_environment() -> bool:
+    \"\"\"Detect if running on HPCC cluster vs local machine\"\"\"
+    hpcc_indicators = [
+        'SLURM_JOB_ID',
+        'PBS_JOBID', 
+        'LSB_JOBID',
+        'CUDA_VISIBLE_DEVICES'
+    ]
+    
+    # Check for HPCC environment variables
+    for indicator in hpcc_indicators:
+        if os.getenv(indicator):
+            return True
+    
+    # Check for high-end hardware (multiple GPUs, high memory)
+    try:
+        import psutil
+        memory_gb = psutil.virtual_memory().total / (1024**3)
+        cpu_count = psutil.cpu_count()
+        if memory_gb > 128 or cpu_count > 32:  # High-end workstation/cluster
+            return True
+    except ImportError:
+        pass
+    
+    return False
+
+def _determine_output_strategy(case_config: Dict, is_hpcc: bool) -> Dict:
+    \"\"\"Intelligently determine output strategy based on environment and simulation goals\"\"\"
+    
+    # Extract simulation intent from case name or setup
+    case_name = case_config.get('general', {{}}).get('case_name', '').lower()
+    
+    if 'test' in case_name or 'debug' in case_name:
+        # Testing/debugging: minimal output for fastest execution
+        return {{
+            'strategy_name': 'minimal_testing',
+            'output_config': {{
+                "primitives": [],
+                "miscellaneous": [],
+                "levelset": []
+            }}
+        }}
+    elif is_hpcc and ('production' in case_name or 'research' in case_name):
+        # HPCC production: full output for analysis
+        return {{
+            'strategy_name': 'hpcc_production',
+            'output_config': {{
+                "primitives": ["density", "velocity", "pressure", "temperature"],
+                "miscellaneous": ["mach_number", "vorticity"],
+                "levelset": ["levelset", "volume_fraction"]
+            }}
+        }}
+    elif is_hpcc:
+        # HPCC general: moderate output
+        return {{
+            'strategy_name': 'hpcc_standard',
+            'output_config': {{
+                "primitives": ["density", "velocity", "pressure"],
+                "miscellaneous": ["mach_number"],
+                "levelset": ["levelset"]
+            }}
+        }}
+    else:
+        # Local development: minimal output for stability (based on our working discovery)
+        return {{
+            'strategy_name': 'local_stable',
+            'output_config': {{
+                "primitives": [],
+                "miscellaneous": [],
+                "levelset": []
+            }}
+        }}
+
+def _optimize_simulation_timing(case_config: Dict, is_hpcc: bool) -> Dict:
+    \"\"\"Optimize simulation timing based on environment and goals\"\"\"
+    
+    general = case_config.get('general', {{}})
+    current_end_time = general.get('end_time', 1.0)
+    
+    if is_hpcc:
+        # HPCC: Allow full simulation duration as specified by agents
+        return {{
+            'end_time': current_end_time,
+            'save_dt': max(current_end_time / 50, 0.1)  # ~50 snapshots
+        }}
+    else:
+        # Local: Use working approach - balance between meaningful results and resource constraints
+        if current_end_time < 5.0:
+            # Short simulation: keep as is but ensure reasonable saves
+            return {{
+                'end_time': current_end_time, 
+                'save_dt': max(current_end_time / 20, 0.05)
+            }}
+        else:
+            # Long simulation: adapt for local execution using proven working values
+            return {{
+                'end_time': 20.0,  # Proven working value for ~100 natural timesteps
+                'save_dt': 5.0     # Proven working save frequency
+            }}
+
+def _optimize_mesh_for_environment(case_config: Dict, is_hpcc: bool) -> Dict:
+    \"\"\"Optimize mesh resolution based on environment capabilities\"\"\"
+    
+    if is_hpcc:
+        # HPCC: Preserve agent's high-resolution choice
+        return {{'adjusted': False}}
+    
+    domain = case_config.get('domain', {{}})
+    nx = domain.get('x', {{}}).get('cells', 64)
+    ny = domain.get('y', {{}}).get('cells', 64)
+    nz = domain.get('z', {{}}).get('cells', 64)
+    
+    total_cells = nx * ny * nz
+    
+    if total_cells > 1_000_000:  # > 1M cells
+        # Large mesh: reduce to proven working size for local stability
+        scale_factor = (300_000 / total_cells) ** (1/3)  # Target ~300k cells
+        new_nx = max(32, int(nx * scale_factor))
+        new_ny = max(32, int(ny * scale_factor))
+        new_nz = max(32, int(nz * scale_factor))
+        
+        return {{
+            'adjusted': True,
+            'description': f'Reduced from {{nx}}×{{ny}}×{{nz}} to {{new_nx}}×{{new_ny}}×{{new_nz}} for local stability',
+            'domain_config': {{
+                'x': {{**domain.get('x', {{}}), 'cells': new_nx}},
+                'y': {{**domain.get('y', {{}}), 'cells': new_ny}},
+                'z': {{**domain.get('z', {{}}), 'cells': new_nz}}
+            }}
+        }}
+    
+    return {{'adjusted': False}}
+
+def _optimize_numerical_params(numerical_config: Dict, case_config: Dict, is_hpcc: bool) -> Dict:
+    \"\"\"Optimize numerical parameters based on environment and stability requirements\"\"\"
+    
+    modified = False
+    description_parts = []
+    
+    # Conservative CFL for stability (based on working discovery)
+    if 'conservatives' in numerical_config and 'time_integration' in numerical_config['conservatives']:
+        time_integration = numerical_config['conservatives']['time_integration']
+        current_cfl = time_integration.get('CFL', 0.5)
+        
+        if not is_hpcc and current_cfl > 0.5:
+            # Local environment: use conservative CFL for stability
+            time_integration['CFL'] = 0.5
+            modified = True
+            description_parts.append(f'CFL reduced to 0.5 for local stability')
+        elif is_hpcc and current_cfl < 0.3:
+            # HPCC: allow more aggressive timestepping if desired
+            time_integration['CFL'] = 0.5
+            modified = True
+            description_parts.append(f'CFL optimized to 0.5 for HPCC performance')
+    
+    return {{
+        'modified': modified,
+        'config': numerical_config,
+        'description': '; '.join(description_parts) if description_parts else 'No changes needed'
+    }}
+
+def _apply_essential_fixes(case_config: Dict) -> Dict:
+    \"\"\"Apply essential JAX-Fluids compatibility fixes\"\"\"
+    
+    # Single device decomposition for stability
+    if 'domain' in case_config:
+        if 'decomposition' not in case_config['domain']:
+            case_config['domain']['decomposition'] = {{}}
+        case_config['domain']['decomposition'].update({{
+            'split_x': 1,
+            'split_y': 1,
+            'split_z': 1
+        }})
+    
+    # Required gravity forcing
+    if 'forcings' not in case_config:
+        case_config['forcings'] = {{'gravity': [0.0, 0.0, 0.0]}}
+    
+    # Ensure proper nondimensionalization
+    if 'nondimensionalization_parameters' in case_config:
+        nondim = case_config['nondimensionalization_parameters']
+        if 'length_reference' not in nondim or nondim['length_reference'] == 0:
+            nondim['length_reference'] = 1.0
+    
+    return case_config
 
 def main():
     \"\"\"Main simulation function using VectraSim's proven approach\"\"\"
@@ -271,12 +482,16 @@ def main():
         print(f"   Case: {{os.path.basename(case_file)}}")
         print(f"   Numerical: {{os.path.basename(numerical_file)}}")
         
-        # Optimize configuration for stable execution
-        optimized_case_file = modify_config_for_production(case_file)
+        # Apply intelligent production optimizations
+        optimized_case_file = modify_config_for_production(case_file, numerical_file)
+        
+        # Use optimized numerical file if it was created
+        optimized_numerical_file = numerical_file.replace('.json', '_production_optimized.json')
+        final_numerical_file = optimized_numerical_file if os.path.exists(optimized_numerical_file) else numerical_file
         
         # Create JAX-Fluids managers
         print("🔧 Creating JAX-Fluids managers...")
-        input_manager = InputManager(optimized_case_file, numerical_file)
+        input_manager = InputManager(optimized_case_file, final_numerical_file)
         initialization_manager = InitializationManager(input_manager)
         sim_manager = SimulationManager(input_manager)
         
@@ -306,7 +521,9 @@ def main():
         # Clean up temporary files
         try:
             os.remove(optimized_case_file)
-            print("🧹 Temporary files cleaned up")
+            if os.path.exists(optimized_numerical_file):
+                os.remove(optimized_numerical_file)
+            print("🧹 Temporary optimization files cleaned up")
         except:
             pass
         

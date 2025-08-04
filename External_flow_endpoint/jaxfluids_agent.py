@@ -49,7 +49,7 @@ Respond with TWO separate JSON objects: numerical_setup and case_setup.
     },
     "space_discretization": {
         "derivative_stencil": "CENTRAL_4" | "CENTRAL_6",
-        "reconstruction_stencil": "WENO5" | "WENO7",
+        "reconstruction_stencil": "WENO5-JS" | "WENO7-JS",
         "convective_flux": "GODUNOV",
         "riemann_solver": "HLL" | "HLLC" | "ROE"
     },
@@ -194,7 +194,7 @@ Analyze the user prompt and output both JSON objects separated by "---CASE_SETUP
             },
             "space_discretization": {
                 "derivative_stencil": "CENTRAL_4",
-                "reconstruction_stencil": "WENO5",
+                "reconstruction_stencil": "WENO5-JS",
                 "convective_flux": "GODUNOV",
                 "riemann_solver": "HLLC"
             },

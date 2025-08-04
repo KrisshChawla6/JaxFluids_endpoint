@@ -78,7 +78,7 @@ class SupersonicCaseSetupExpert:
             return self._create_template_case_setup(context)
     
     def _create_supersonic_prompt(self, context: Dict[str, Any]) -> str:
-        """Create specialized AI prompt for supersonic internal flows"""
+        """Create specialized AI prompt for supersonic internal flows with intelligent boundary conditions"""
         
         flow_type = context.get("flow_type", "supersonic_nozzle")
         mach_number = context.get("mach_number", 2.0)
@@ -86,6 +86,44 @@ class SupersonicCaseSetupExpert:
         temperature_inlet = context.get("temperature_inlet", 2800.0)
         simulation_name = context.get("simulation_name", "supersonic_internal")
         
+        # Check for intelligent boundary conditions
+        has_intelligent_bcs = context.get("has_intelligent_bcs", False)
+        inlet_mask_file = context.get("inlet_mask_file", "")
+        outlet_mask_file = context.get("outlet_mask_file", "")
+        inlet_points = context.get("inlet_points", 0)
+        outlet_points = context.get("outlet_points", 0)
+        bc_storage_dir = context.get("bc_storage_directory", "")
+        
+        if has_intelligent_bcs:
+            bc_integration_text = f"""
+INTELLIGENT BOUNDARY CONDITIONS DETECTED:
+✅ Inlet mask: {inlet_points:,} points - {inlet_mask_file}
+✅ Outlet mask: {outlet_points:,} points - {outlet_mask_file}
+✅ BC storage: {bc_storage_dir}
+
+CRITICAL: Use JAX-Fluids FORCING SYSTEM instead of traditional SIMPLE_INFLOW/OUTFLOW!
+- Do NOT use SIMPLE_INFLOW or SIMPLE_OUTFLOW boundary conditions
+- ALL domain boundaries must be SYMMETRY (this is internal flow with immersed boundaries)
+- Use "forcings" section to apply inlet/outlet conditions via the generated masks
+- The forcing system will handle the virtual inlet/outlet boundary conditions
+- This follows the proven rocket_simulation_final configuration pattern
+
+FORCING CONFIGURATION REQUIREMENTS:
+1. Add "forcings" section with mass_flow and temperature targets
+2. Reference the generated inlet/outlet mask files in forcing configuration
+3. Use high-pressure inlet conditions (6-7 MPa) for rocket propulsion
+4. Use atmospheric outlet conditions (101 kPa)
+5. Include proper immersed boundary levelset for nozzle walls
+"""
+        else:
+            bc_integration_text = """
+NO INTELLIGENT BOUNDARY CONDITIONS DETECTED:
+⚠️ Falling back to traditional SIMPLE_INFLOW/OUTFLOW boundary conditions
+- Use SIMPLE_INFLOW for inlet (west) - specify density, velocity, temperature
+- Use SIMPLE_OUTFLOW for outlet (east) - specify pressure only
+- Use SYMMETRY for top/bottom boundaries (axisymmetric nozzle)
+"""
+
         prompt = f"""
 You are a supersonic internal flow expert generating JAX-Fluids case setup for rocket propulsion applications.
 
@@ -96,129 +134,159 @@ SIMULATION CONTEXT:
 - Inlet Temperature: {temperature_inlet} K
 - Simulation: {simulation_name}
 
-CRITICAL REQUIREMENTS FOR SUPERSONIC INTERNAL FLOWS:
-1. Use SIMPLE_INFLOW for inlet (west) - specify density, velocity, temperature
-2. Use SIMPLE_OUTFLOW for outlet (east) - specify pressure only
-3. Use SYMMETRY for top/bottom boundaries (axisymmetric nozzle)
-4. Configure converging-diverging nozzle geometry with proper domain
-5. High-temperature gas properties for rocket propulsion
-6. Proper nondimensionalization for supersonic conditions
+{bc_integration_text}
 
-MANDATORY JAX-FLUIDS INTERNAL FLOW STRUCTURE:
+MANDATORY JAX-FLUIDS INTERNAL FLOW STRUCTURE (Enhanced with Intelligent BCs):
 {{
-  "case_name": "{simulation_name}",
   "general": {{
     "case_name": "{simulation_name}",
-    "end_time": 0.01,
-    "save_path": "./results_supersonic",
-    "save_dt": 0.001
+    "end_time": 0.05,
+    "save_path": "./output/",
+    "save_dt": 0.005
+  }},
+  "restart": {{
+    "flag": false,
+    "file_path": ""
   }},
   "domain": {{
     "x": {{
-      "cells": 400,
-      "range": [-0.1, 0.3],
-      "stretching": {{
-        "type": "BOUNDARY_LAYER",
-        "parameters": {{
-          "lower_bound": -0.1,
-          "upper_bound": 0.3,
-          "cells": 400
-        }}
-      }}
+      "cells": 128,
+      "range": [-200.0, 1800.0]
     }},
     "y": {{
-      "cells": 200, 
-      "range": [-0.05, 0.05],
-      "stretching": {{
-        "type": "BOUNDARY_LAYER",
-        "parameters": {{
-          "lower_bound": -0.05,
-          "upper_bound": 0.05,
-          "cells": 200
-        }}
-      }}
+      "cells": 64,
+      "range": [-800.0, 800.0]
     }},
     "z": {{
-      "cells": 1,
-      "range": [0.0, 1.0]
+      "cells": 64,
+      "range": [-800.0, 800.0]
     }},
     "decomposition": {{
       "split_x": 1,
       "split_y": 1,
       "split_z": 1
     }}
-  }},
+  }},"""
+
+        if has_intelligent_bcs:
+            prompt += f"""
   "boundary_conditions": {{
-    "west": {{
-      "type": "SIMPLE_INFLOW",
-      "primitives_callable": {{
-        "rho": <calculate from inlet conditions>,
-        "u": <calculate supersonic velocity>,
-        "v": 0.0,
-        "w": 0.0
+    "east": {{"type": "SYMMETRY"}},
+    "west": {{"type": "SYMMETRY"}},
+    "north": {{"type": "SYMMETRY"}},
+    "south": {{"type": "SYMMETRY"}},
+    "top": {{"type": "SYMMETRY"}},
+    "bottom": {{"type": "SYMMETRY"}}
+  }},
+  "initial_condition": {{
+    "primitives": {{
+      "rho": 1.0,
+      "u": 10.0,
+      "v": 0.0,
+      "w": 0.0,
+      "p": 1000000.0
+    }},
+    "levelset": "{bc_storage_dir}/internal_flow_bc_sdf_matrix.npy"
+  }},
+  "forcings": {{
+    "mass_flow": {{
+      "direction": "x",
+      "target_value": 15.0,
+      "inlet_mask_file": "{inlet_mask_file}",
+      "outlet_mask_file": "{outlet_mask_file}"
+    }},
+    "temperature": {{
+      "target_value": {temperature_inlet},
+      "inlet_conditions": {{
+        "pressure": 6900000.0,
+        "temperature": {temperature_inlet},
+        "velocity": 50.0
+      }},
+      "outlet_conditions": {{
+        "pressure": 101325.0,
+        "temperature": 288.15
+      }}
+    }}
+  }},"""
+        else:
+            prompt += f"""
+  "boundary_conditions": {{
+    "east": {{
+      "type": "SIMPLE_OUTFLOW",
+      "primitives": {{
+        "p": 101325.0
       }}
     }},
-    "east": {{
-      "type": "SIMPLE_OUTFLOW", 
-      "primitives_callable": {{
-        "p": <ambient pressure>
+    "west": {{
+      "type": "SIMPLE_INFLOW", 
+      "primitives": {{
+        "rho": 3.5,
+        "u": {mach_number * 300.0},
+        "v": 0.0,
+        "w": 0.0,
+        "p": {pressure_ratio * 101325.0},
+        "T": {temperature_inlet}
       }}
     }},
     "north": {{"type": "SYMMETRY"}},
     "south": {{"type": "SYMMETRY"}},
-    "top": {{"type": "INACTIVE"}},
-    "bottom": {{"type": "INACTIVE"}}
+    "top": {{"type": "SYMMETRY"}},
+    "bottom": {{"type": "SYMMETRY"}}
   }},
   "initial_condition": {{
-    "rho": <initial density>,
-    "u": <initial velocity>,
-    "v": 0.0,
-    "w": 0.0,
-    "p": <initial pressure>
-  }},
+    "primitives": {{
+      "rho": 1.0,
+      "u": 50.0,
+      "v": 0.0,
+      "w": 0.0,
+      "p": 500000.0
+    }}
+  }},"""
+
+        prompt += f"""
   "material_properties": {{
     "equation_of_state": {{
       "model": "IdealGas",
-      "specific_heat_ratio": 1.3,
+      "specific_heat_ratio": 1.4,
       "specific_gas_constant": 287.0
     }},
     "transport": {{
       "dynamic_viscosity": {{
         "model": "CUSTOM",
-        "value": 5e-5
+        "value": 1.8e-05
       }},
       "bulk_viscosity": 0.0,
       "thermal_conductivity": {{
-        "model": "CUSTOM", 
-        "value": 0.1
+        "model": "PRANDTL",
+        "prandtl_number": 0.72
       }}
     }}
   }},
   "nondimensionalization_parameters": {{
-    "density_reference": <reference density>,
-    "length_reference": 0.1,
-    "velocity_reference": <reference velocity>,
-    "temperature_reference": <reference temperature>
-  }},
-  "forcings": {{
-    "gravity": [0.0, 0.0, 0.0]
+    "density_reference": 1.0,
+    "length_reference": 1.0,
+    "velocity_reference": 50.0,
+    "temperature_reference": 288.15
   }},
   "output": {{
-    "primitives": ["density", "velocity", "pressure", "temperature"],
-    "miscellaneous": ["mach_number", "schlieren"],
-    "levelset": []
+    "domain": {{
+      "write_interval": 10,
+      "write_start": 0,
+      "primitives": ["density", "velocity", "pressure", "temperature"],
+      "derived": ["mach_number", "speed_of_sound"]
+    }}
   }}
 }}
 
-SPECIFIC CALCULATIONS FOR ROCKET PROPULSION:
-- For chamber conditions: P₀ = {pressure_ratio * 101325:.0f} Pa, T₀ = {temperature_inlet:.0f} K
-- Use isentropic relations for nozzle flow
-- Calculate density from ideal gas law: ρ = P/(R*T)
-- Calculate sonic velocity: a = sqrt(γ*R*T)
-- For supersonic flow: u = M * a
-- Reference conditions for nondimensionalization
+CRITICAL SUCCESS FACTORS:
+1. {"✅ INTELLIGENT BCs: Use forcing system with generated masks" if has_intelligent_bcs else "⚠️ FALLBACK: Use traditional SIMPLE_INFLOW/OUTFLOW"}
+2. ✅ High-temperature gas properties for rocket propulsion
+3. ✅ Proper domain dimensions for internal rocket nozzle flow
+4. ✅ Appropriate time stepping and output configuration
+5. ✅ Supersonic-capable numerical schemes (will be handled by numerical expert)
 
-Generate ONLY the JSON configuration. Ensure all numerical values are properly calculated for supersonic rocket propulsion conditions.
+Generate a complete JAX-Fluids case setup that implements the above requirements.
+Return ONLY the JSON configuration, no explanatory text.
 """
         
         return prompt
@@ -275,120 +343,231 @@ Generate ONLY the JSON configuration. Ensure all numerical values are properly c
         print(f"   🔄 Outlet BC: {east_bc}")
     
     def _create_template_case_setup(self, context: Dict[str, Any]) -> Dict[str, Any]:
-        """Create template case setup for supersonic internal flows"""
+        """Create template case setup for supersonic internal flows with intelligent BC support"""
         
         simulation_name = context.get("simulation_name", "supersonic_internal_flow")
         flow_type = context.get("flow_type", "supersonic_nozzle")
         
-        # Default supersonic rocket conditions
-        chamber_pressure = context.get("chamber_pressure", 2.0e6)  # 20 bar
-        chamber_temperature = context.get("temperature_inlet", 2800.0)  # 2800 K
-        ambient_pressure = context.get("ambient_pressure", 101325.0)  # 1 atm
-        gamma = context.get("gamma", 1.3)
-        R = 287.0  # J/kg/K for hot gases
-        
-        # Calculate flow properties
-        chamber_density = chamber_pressure / (R * chamber_temperature)
-        sonic_velocity = (gamma * R * chamber_temperature) ** 0.5
-        inlet_velocity = 0.5 * sonic_velocity  # Subsonic inlet
-        
-        # Reference conditions
-        rho_ref = chamber_density
-        u_ref = sonic_velocity
-        T_ref = chamber_temperature
-        L_ref = 0.1  # 10 cm characteristic length
-        
-        template = {
-            "case_name": simulation_name,
-            "general": {
-                "case_name": simulation_name,
-                "end_time": 0.005,
-                "save_path": "./results_supersonic",
-                "save_dt": 0.0005
-            },
-            "domain": {
-                "x": {
-                    "cells": 320,
-                    "range": [-0.05, 0.15]
-                },
-                "y": {
-                    "cells": 160,
-                    "range": [-0.04, 0.04] 
-                },
-                "z": {
-                    "cells": 1,
-                    "range": [0.0, 1.0]
-                },
-                "decomposition": {
-                    "split_x": 1,
-                    "split_y": 1,
-                    "split_z": 1
-                }
-            },
-            "boundary_conditions": {
-                "west": {
-                    "type": "SIMPLE_INFLOW",
-                    "primitives_callable": {
-                        "rho": chamber_density,
-                        "u": inlet_velocity,
-                        "v": 0.0,
-                        "w": 0.0
-                    }
-                },
-                "east": {
-                    "type": "SIMPLE_OUTFLOW",
-                    "primitives_callable": {
-                        "p": ambient_pressure
-                    }
-                },
-                "north": {"type": "SYMMETRY"},
-                "south": {"type": "SYMMETRY"},
-                "top": {"type": "INACTIVE"},
-                "bottom": {"type": "INACTIVE"}
-            },
-            "initial_condition": {
-                "rho": chamber_density * 0.8,
-                "u": inlet_velocity * 0.5,
-                "v": 0.0,
-                "w": 0.0,
-                "p": chamber_pressure * 0.6
-            },
-            "material_properties": {
-                "equation_of_state": {
-                    "model": "IdealGas",
-                    "specific_heat_ratio": gamma,
-                    "specific_gas_constant": R
-                },
-                "transport": {
-                    "dynamic_viscosity": {
-                        "model": "CUSTOM",
-                        "value": 5e-5
-                    },
-                    "bulk_viscosity": 0.0,
-                    "thermal_conductivity": {
-                        "model": "CUSTOM",
-                        "value": 0.1
-                    }
-                }
-            },
-            "nondimensionalization_parameters": {
-                "density_reference": rho_ref,
-                "length_reference": L_ref,
-                "velocity_reference": u_ref,
-                "temperature_reference": T_ref
-            },
-            "forcings": {
-                "gravity": [0.0, 0.0, 0.0]
-            },
-            "output": {
-                "primitives": ["density", "velocity", "pressure", "temperature"],
-                "miscellaneous": ["mach_number", "schlieren"],
-                "levelset": []
-            }
-        }
+        # Check for intelligent boundary conditions
+        has_intelligent_bcs = context.get("has_intelligent_bcs", False)
+        inlet_mask_file = context.get("inlet_mask_file", "")
+        outlet_mask_file = context.get("outlet_mask_file", "")
+        bc_storage_dir = context.get("bc_storage_directory", "")
+        temperature_inlet = context.get("temperature_inlet", 3580.0)
         
         print(f"   📐 Generated template for {flow_type}")
-        print(f"   🔥 Chamber: {chamber_pressure/1e6:.1f} MPa, {chamber_temperature:.0f} K")
-        print(f"   🌪️ Sonic velocity: {sonic_velocity:.0f} m/s")
+        
+        if has_intelligent_bcs:
+            print(f"   🧠 Using intelligent boundary conditions with forcing system")
+            print(f"   🔴 Inlet mask: {inlet_mask_file}")
+            print(f"   🟢 Outlet mask: {outlet_mask_file}")
+            
+            # Enhanced template with intelligent boundary conditions (forcing system)
+            template = {
+                "general": {
+                    "case_name": simulation_name,
+                    "end_time": 0.05,
+                    "save_path": "./output/",
+                    "save_dt": 0.005
+                },
+                "restart": {
+                    "flag": False,
+                    "file_path": ""
+                },
+                "domain": {
+                    "x": {
+                        "cells": 128,
+                        "range": [-200.0, 1800.0]
+                    },
+                    "y": {
+                        "cells": 64,
+                        "range": [-800.0, 800.0]
+                    },
+                    "z": {
+                        "cells": 64,
+                        "range": [-800.0, 800.0]
+                    },
+                    "decomposition": {
+                        "split_x": 1,
+                        "split_y": 1,
+                        "split_z": 1
+                    }
+                },
+                "boundary_conditions": {
+                    "east": {"type": "SYMMETRY"},
+                    "west": {"type": "SYMMETRY"},
+                    "north": {"type": "SYMMETRY"},
+                    "south": {"type": "SYMMETRY"},
+                    "top": {"type": "SYMMETRY"},
+                    "bottom": {"type": "SYMMETRY"}
+                },
+                "initial_condition": {
+                    "primitives": {
+                        "rho": 1.0,
+                        "u": 10.0,
+                        "v": 0.0,
+                        "w": 0.0,
+                        "p": 1000000.0
+                    },
+                    "levelset": f"{bc_storage_dir}/internal_flow_bc_sdf_matrix.npy"
+                },
+                "forcings": {
+                    "mass_flow": {
+                        "direction": "x",
+                        "target_value": 15.0,
+                        "inlet_mask_file": inlet_mask_file,
+                        "outlet_mask_file": outlet_mask_file
+                    },
+                    "temperature": {
+                        "target_value": temperature_inlet,
+                        "inlet_conditions": {
+                            "pressure": 6900000.0,
+                            "temperature": temperature_inlet,
+                            "velocity": 50.0
+                        },
+                        "outlet_conditions": {
+                            "pressure": 101325.0,
+                            "temperature": 288.15
+                        }
+                    }
+                },
+                "material_properties": {
+                    "equation_of_state": {
+                        "model": "IdealGas",
+                        "specific_heat_ratio": 1.4,
+                        "specific_gas_constant": 287.0
+                    },
+                    "transport": {
+                        "dynamic_viscosity": {
+                            "model": "CUSTOM",
+                            "value": 1.8e-05
+                        },
+                        "bulk_viscosity": 0.0,
+                        "thermal_conductivity": {
+                            "model": "PRANDTL",
+                            "prandtl_number": 0.72
+                        }
+                    }
+                },
+                "nondimensionalization_parameters": {
+                    "density_reference": 1.0,
+                    "length_reference": 1.0,
+                    "velocity_reference": 50.0,
+                    "temperature_reference": 288.15
+                },
+                "output": {
+                    "domain": {
+                        "write_interval": 10,
+                        "write_start": 0,
+                        "primitives": ["density", "velocity", "pressure", "temperature"],
+                        "derived": ["mach_number", "speed_of_sound"]
+                    }
+                }
+            }
+            
+        else:
+            print(f"   ⚠️ Falling back to traditional SIMPLE_INFLOW/OUTFLOW")
+            
+            # Default supersonic rocket conditions
+            chamber_pressure = context.get("chamber_pressure", 2.0e6)  # 20 bar
+            chamber_temperature = context.get("temperature_inlet", 2800.0)  # 2800 K
+            ambient_pressure = context.get("ambient_pressure", 101325.0)  # 1 atm
+            gamma = context.get("gamma", 1.3)
+            R = 287.0  # J/kg/K for hot gases
+            
+            # Calculate flow properties
+            chamber_density = chamber_pressure / (R * chamber_temperature)
+            sonic_velocity = (gamma * R * chamber_temperature) ** 0.5
+            inlet_velocity = 0.5 * sonic_velocity  # Subsonic inlet
+            
+            print(f"   🔥 Chamber: {chamber_pressure/1e6:.1f} MPa, {chamber_temperature:.0f} K")
+            print(f"   🌪️ Sonic velocity: {sonic_velocity:.0f} m/s")
+            
+            template = {
+                "case_name": simulation_name,
+                "general": {
+                    "case_name": simulation_name,
+                    "end_time": 0.005,
+                    "save_path": "./results_supersonic",
+                    "save_dt": 0.0005
+                },
+                "domain": {
+                    "x": {
+                        "cells": 320,
+                        "range": [-0.05, 0.15]
+                    },
+                    "y": {
+                        "cells": 160,
+                        "range": [-0.04, 0.04]
+                    },
+                    "z": {
+                        "cells": 1,
+                        "range": [0.0, 1.0]
+                    },
+                    "decomposition": {
+                        "split_x": 1,
+                        "split_y": 1,
+                        "split_z": 1
+                    }
+                },
+                "boundary_conditions": {
+                    "west": {
+                        "type": "SIMPLE_INFLOW",
+                        "primitives_callable": {
+                            "rho": chamber_density,
+                            "u": inlet_velocity,
+                            "v": 0.0,
+                            "w": 0.0
+                        }
+                    },
+                    "east": {
+                        "type": "SIMPLE_OUTFLOW",
+                        "primitives_callable": {
+                            "p": ambient_pressure
+                        }
+                    },
+                    "north": {"type": "SYMMETRY"},
+                    "south": {"type": "SYMMETRY"},
+                    "top": {"type": "INACTIVE"},
+                    "bottom": {"type": "INACTIVE"}
+                },
+                "initial_condition": {
+                    "primitives_callable": {
+                        "rho": chamber_density * 0.5,
+                        "u": inlet_velocity * 0.1,
+                        "v": 0.0,
+                        "w": 0.0,
+                        "p": ambient_pressure * 5.0
+                    }
+                },
+                "material_properties": {
+                    "equation_of_state": {
+                        "model": "IdealGas",
+                        "specific_heat_ratio": gamma,
+                        "specific_gas_constant": R
+                    },
+                    "transport": {
+                        "dynamic_viscosity": {
+                            "model": "CUSTOM",
+                            "value": 5e-5
+                        },
+                        "bulk_viscosity": 0.0,
+                        "thermal_conductivity": {
+                            "model": "CUSTOM",
+                            "value": 0.1
+                        }
+                    }
+                },
+                "nondimensionalization_parameters": {
+                    "density_reference": chamber_density,
+                    "length_reference": 0.1,
+                    "velocity_reference": sonic_velocity,
+                    "temperature_reference": chamber_temperature
+                },
+                "output": {
+                    "primitives": ["density", "velocity", "pressure", "temperature"],
+                    "miscellaneous": ["mach_number", "schlieren"]
+                }
+            }
         
         return template 

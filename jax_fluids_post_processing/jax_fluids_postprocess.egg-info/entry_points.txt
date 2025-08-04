@@ -1,0 +1,2 @@
+[console_scripts]
+jax-fluids-postprocess = jax_fluids_postprocess.cli:main

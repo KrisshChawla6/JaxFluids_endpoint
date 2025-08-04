@@ -168,7 +168,7 @@ Respond with a complete JSON object for numerical_setup.json:
             "godunov": {
                 "riemann_solver": string ("HLLC", "HLL", "ROE", "RUSANOV", "LAX_FRIEDRICHS"),
                 "signal_speed": string ("EINFELDT", "ROE", "DAVIS"),
-                "reconstruction_stencil": string ("WENO3", "WENO5", "WENO5-Z", "WENO7", "CENTRAL2", "CENTRAL4", "CENTRAL6"),
+                "reconstruction_stencil": string ("WENO3-JS", "WENO5-JS", "WENO5-Z", "WENO7-JS", "CENTRAL2", "CENTRAL4", "CENTRAL6"),
                 "reconstruction_variable": string ("PRIMITIVE", "CONSERVATIVE", "CHAR-PRIMITIVE", "CHAR-CONSERVATIVE")
             },
             "ausm": {
@@ -304,7 +304,7 @@ Always respond with the complete JSON only, no additional text."""
                     "godunov": {
                         "riemann_solver": "HLLC",
                         "signal_speed": "EINFELDT",
-                        "reconstruction_stencil": "WENO5-Z",
+                        "reconstruction_stencil": "WENO5-JS",
                         "reconstruction_variable": "CHAR-PRIMITIVE"
                     }
                 },

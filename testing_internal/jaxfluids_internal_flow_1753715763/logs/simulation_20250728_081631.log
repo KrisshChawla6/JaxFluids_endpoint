@@ -1,0 +1,9 @@
+2025-07-28 08:16:31,382 - INFO - ================================================================================
+2025-07-28 08:16:31,383 - INFO -    Simulation: jaxfluids_internal_flow_1753715763
+2025-07-28 08:16:31,383 - INFO -    Config: jaxfluids_internal_flow_1753715763.json
+2025-07-28 08:16:31,383 - INFO -    Numerical: numerical_setup.json
+2025-07-28 08:16:31,383 - INFO -    Max iterations: 5
+2025-07-28 08:16:31,383 - INFO -    Intelligent BCs: 1,872 inlet, 7,120 outlet
+2025-07-28 08:16:31,383 - INFO - ================================================================================
+2025-07-28 08:16:31,385 - INFO - ============================================================
+2025-07-28 08:16:31,451 - INFO - Unable to initialize backend 'tpu': UNIMPLEMENTED: LoadPjrtPlugin is not implemented on windows yet.

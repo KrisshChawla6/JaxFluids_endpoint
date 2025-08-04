@@ -1,0 +1,17 @@
+# JAX-Fluids Post-Processing Requirements
+# Core data processing
+h5py>=3.0.0
+numpy>=1.20.0
+scipy>=1.7.0
+
+# Visualization
+pyvista>=0.38.0
+matplotlib>=3.5.0
+
+# Optional: For enhanced visualizations
+# vtk>=9.0.0  # Usually comes with pyvista
+# jupyter>=1.0.0  # For notebook support
+
+# Development and utilities
+pathlib2>=2.3.0; python_version<"3.4"
+typing_extensions>=4.0.0; python_version<"3.8"

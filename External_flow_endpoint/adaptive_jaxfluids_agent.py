@@ -578,13 +578,32 @@ def modify_config_for_production(case_file: str) -> str:
     with open(case_file, 'r', encoding='utf-8') as f:
         case_config = json.load(f)
     
-         # VectraSim's proven optimizations for stability
-     # Configure minimal output to avoid JAX-Fluids internal bugs
-     case_config['output'] = {{
-         "primitives": [],     # Minimal output for stability
-         "miscellaneous": [], 
-         "levelset": []        # Disable levelset output (avoids known JAX-Fluids bug)
-     }}
+    # INTELLIGENT OUTPUT CONFIGURATION (based on proven working solution)
+    if 'output' in case_config:
+        # Fix common field name errors that cause crashes
+        if 'miscellaneous' in case_config['output']:
+            misc_fields = case_config['output']['miscellaneous']
+            if 'q_criterion' in misc_fields:
+                misc_fields[misc_fields.index('q_criterion')] = 'qcriterion'
+                print("🔧 Fixed field name: q_criterion -> qcriterion")
+        
+        # PROVEN WORKING OUTPUT STRATEGY (from successful 116-step run)
+        # Key insight: levelset output fields cause NoneType error even with complex SDF
+        # Always use essential fields only and remove levelset output for stability
+        case_config['output']['primitives'] = ['density', 'velocity', 'pressure', 'temperature']
+        case_config['output']['miscellaneous'] = ['mach_number']  # Fixed field name above
+        case_config['output']['levelset'] = []  # CRITICAL: Remove to avoid NoneType error
+        case_config['output']['conservatives'] = []  # Keep minimal
+        
+        print("🔧 Applied proven working output strategy (essential fields, no levelset output)")
+    else:
+        # Fallback if no output section exists
+        case_config['output'] = {{
+            "primitives": ['density', 'velocity', 'pressure', 'temperature'],
+            "miscellaneous": ['mach_number'],
+            "levelset": []
+        }}
+        print("🔧 Created essential output configuration")
     
     # Ensure single device decomposition for development/testing
     if 'domain' in case_config and 'decomposition' in case_config['domain']:
@@ -604,40 +623,63 @@ def modify_config_for_production(case_file: str) -> str:
     if 'forcings' not in case_config:
         case_config['forcings'] = {{'gravity': [0.0, 0.0, 0.0]}}
     
-         # Configure intelligent simulation time based on physics and intent
-     if 'general' in case_config:
-         # Let the AI agent determine appropriate simulation time
-         # Only apply minimal safety bounds - don't override AI decisions
-         current_end_time = case_config['general'].get('end_time', 1.0)
-         
-         # Apply reasonable bounds but preserve AI autonomy
-         if current_end_time > 1000.0:  # Very long simulations
-             case_config['general']['save_dt'] = current_end_time / 100  # Save every ~1% progress
-         elif current_end_time > 10.0:  # Medium simulations
-             case_config['general']['save_dt'] = current_end_time / 50   # Save every ~2% progress
-         else:  # Short simulations (testing/debugging)
-             case_config['general']['save_dt'] = current_end_time / 10   # Save every ~10% progress
-    
-         # Handle SDF path structure - look for sdf_data subdirectory
-     if 'initial_condition' in case_config and 'levelset' in case_config['initial_condition']:
-         if case_config['initial_condition']['levelset'] == 'CUSTOM_SDF':
+    # INTELLIGENT SIMULATION TIMING (based on proven working solution)
+    if 'general' in case_config:
+        # Create results directory
+        os.makedirs("./results", exist_ok=True)
+        case_config['general']['save_path'] = "./results"
+        
+        # Detect execution environment
+        is_hpcc = any(env_var in os.environ for env_var in ['SLURM_JOB_ID', 'PBS_JOBID', 'LSB_JOBID'])
+        
+        if is_hpcc:
+            # HPCC: Preserve AI agent's intelligent timing decisions
+            current_end_time = case_config['general'].get('end_time', 1.0)
+            if current_end_time > 1000.0:
+                case_config['general']['save_dt'] = current_end_time / 100
+            elif current_end_time > 10.0:
+                case_config['general']['save_dt'] = current_end_time / 50
+            else:
+                case_config['general']['save_dt'] = current_end_time / 10
+            print("🔧 HPCC environment: Preserved intelligent timing")
+        else:
+            # Local environment: Use proven 100+ timestep approach
+            case_config['general']['end_time'] = 20.0    # Proven: ~116 timesteps with dt ≈ 0.173
+            case_config['general']['save_dt'] = 2.0      # Proven: ~10 snapshots for good resolution
+            print("🔧 Local environment: Applied proven 100+ timestep timing (20.0 end_time)")
+        
+        # Apply proven stable mesh size for local development
+        if not is_hpcc and 'domain' in case_config:
+            # Check if mesh is very large and scale down for local stability
+            x_cells = case_config['domain'].get('x', {{}}).get('cells', 64)
+            y_cells = case_config['domain'].get('y', {{}}).get('cells', 64)
+            z_cells = case_config['domain'].get('z', {{}}).get('cells', 64)
+            total_cells = x_cells * y_cells * z_cells
             
-            # Find the SDF file in sdf_data subdirectory
+            if total_cells > 300000:  # > 0.3M cells might be unstable locally
+                case_config['domain']['x']['cells'] = 64
+                case_config['domain']['y']['cells'] = 64
+                case_config['domain']['z']['cells'] = 64
+                print("🔧 Local environment: Scaled mesh to proven stable 64x64x64")
+    
+    # PRESERVE INTELLIGENT SDF GEOMETRY (based on actual working solution)
+    # The working approach was to KEEP the complex SDF and just fix output configuration
+    if 'initial_condition' in case_config and 'levelset' in case_config['initial_condition']:
+        levelset_value = case_config['initial_condition']['levelset']
+        if 'sdf' in str(levelset_value).lower() or 'CUSTOM_SDF' in str(levelset_value):
+            # Always preserve the intelligent SDF setup - this is what actually worked
             config_dir = os.path.dirname(case_file)
             sdf_pattern = os.path.join(config_dir, 'sdf_data', '*', '*_sdf_matrix.npy')
             sdf_files = glob.glob(sdf_pattern)
             
             if sdf_files:
-                # Use the first SDF matrix file found
                 sdf_file = sdf_files[0]
-                # Convert to relative path from config directory
                 rel_sdf_path = os.path.relpath(sdf_file, config_dir)
-                                 case_config['initial_condition']['levelset'] = f'CUSTOM_SDF({{rel_sdf_path}})'
-                 print(f"🔧 SDF integration: {{{{rel_sdf_path}}}}")
+                case_config['initial_condition']['levelset'] = f'CUSTOM_SDF({{rel_sdf_path}})'
+                print(f"🔧 Preserved intelligent SDF geometry: {{{{rel_sdf_path}}}}")
             else:
-                print("⚠️ No SDF files found in sdf_data subdirectory")
-                # Remove levelset reference if no SDF found
-                case_config['initial_condition']['levelset'] = 'SPHERE(center=[0.0, 0.0, 0.0], radius=0.5)'
+                # Keep the existing SDF reference - don't force sphere geometry
+                print("🔧 Preserved existing SDF configuration (no external file needed)")
     
     # Write optimized config
     optimized_file = case_file.replace('.json', '_production_optimized.json')
@@ -666,13 +708,31 @@ VectraSim - Advanced Computational Physics Platform
 \"\"\"
 ```
 
- Use proper JAX-Fluids API patterns - PROVEN WORKING:
+ Use EXACTLY this proven JAX-Fluids pattern - no modifications:
  ```python
- input_manager = InputManager(optimized_case_file, numerical_file)
- initialization_manager = InitializationManager(input_manager)
- sim_manager = SimulationManager(input_manager)
- buffers = initialization_manager.initialization()
- sim_manager.simulate(buffers)  # This works - do NOT use advance() method
+def run_simulation(case_file: str, numerical_file: str):
+    \"\"\"Runs the JAX-Fluids simulation with enhanced error handling.\"\"\"
+    try:
+        optimized_case_file = modify_config_for_production(case_file)
+        
+        input_manager = InputManager(optimized_case_file, numerical_file)
+        initialization_manager = InitializationManager(input_manager)
+        sim_manager = SimulationManager(input_manager)
+        buffers = initialization_manager.initialization()
+        sim_manager.simulate(buffers)  # PROVEN WORKING - do NOT use advance()
+        print("🎉 Simulation completed successfully! Check ./results/ for .h5 files")
+
+    except FileNotFoundError as e:
+        print(f"❌ Error: Configuration file not found: {{e}}")
+    except json.JSONDecodeError as e:
+        print(f"❌ Error: Invalid JSON format in configuration file: {{e}}")
+    except Exception as e:
+        print(f"❌ An unexpected error occurred: {{e}}")
+
+if __name__ == "__main__":
+    case_file = "{config.case_file}"
+    numerical_file = "{config.numerical_file}"
+    run_simulation(case_file, numerical_file)
  ```
 
 Create a production-quality script that handles errors gracefully and will execute successfully with the provided configuration files."""
